@@ -6,59 +6,111 @@ It provides a publication-ready visualization of treated, control, and never-tre
 
 ---
 
-## Installation
+## Working Example
 
-You can install the development version of `catviz` directly from GitHub:
+The example creates simulated panel data for **hospitals nested within states**,  
+where **states adopt treatment at different years**, and hospitals may also belong  
+to binary subgroups (for DR-DDD analysis).
+
+---
+
+## Variable definitions
+
+| Variable | Role | Description |
+|-----------|------|-------------|
+| `hospital_id` | **Unit ID** | Unique identifier for each hospital (unit of analysis). |
+| `state` | **Group ID** | State identifier — treatment is assigned at this level. All hospitals in a state share the same treatment adoption year `g`. |
+| `year` | **Time** | Calendar year (panel time dimension). |
+| `g` | **First Treatment Year** | The first year the state adopts treatment (or `Inf` if never treated). |
+| `p` | **Subgroup** | Binary subgroup indicator (e.g., `p = 0` vs. `p = 1`), used only for **DR-DDD**. Omit this variable for **CSDID**. |
+
+---
+
+## Example code
 
 ```r
-# Install devtools if needed
-install.packages("devtools")
+# =======================================================
+# Example: State-level staggered adoption with subgroups
+# =======================================================
 
-# Install catviz
-devtools::install_github("VictorKilanko/catviz")
+# Install if needed
+# install.packages("devtools")
+# devtools::install_github("VictorKilanko/catviz")
 
-# Load the package
-library(catviz)
-
-# How it works
 library(catviz)
 library(dplyr)
+library(tidyr)
+library(purrr)  # for map()
 
 set.seed(123)
 
-# Example panel data
-example_data <- tibble(
-  hospital_id = rep(1:100, each = 10),
-  year        = rep(2014:2023, times = 100),
-  g           = sample(c(2015, 2016, 2019, 2020, 2021, 2023, Inf),
-                       1000, replace = TRUE),
-  p           = sample(0:1, 1000, replace = TRUE)
+# ---------------------------
+# 1. Define simulation setup
+# ---------------------------
+states <- sprintf("S%02d", 1:20)    # 20 states
+years  <- 2014:2023
+N_hosp <- 5                         # 5 hospitals per state
+
+# Each state adopts treatment in a different year (staggered)
+adopt_years <- c(2015, 2016, 2019, 2020, 2021, 2023, Inf)
+
+state_level <- tibble(
+  state = states,
+  g = sample(adopt_years, length(states), replace = TRUE)
 )
 
-# 1. Specify the Causal Assignment Tree
+# ---------------------------
+# 2. Create hospitals within states
+# ---------------------------
+hospitals <- state_level %>%
+  mutate(
+    hospital_id = map(state, ~ paste0(.x, "_H", 1:N_hosp))
+  ) %>%
+  unnest(hospital_id) %>%
+  mutate(
+    p = sample(0:1, n(), replace = TRUE)  # subgroup (omit for CSDID)
+  )
+
+# ---------------------------
+# 3. Expand to panel structure
+# ---------------------------
+example_data <- expand_grid(
+  hospital_id = hospitals$hospital_id,
+  year = years
+) %>%
+  left_join(hospitals, by = "hospital_id") %>%
+  arrange(hospital_id, year)
+
+# ---------------------------
+# 4. Define CAT specification
+# ---------------------------
 spec <- cat_spec(
-  data     = example_data,
-  id       = "hospital_id",
-  time     = "year",
-  g        = "g",
-  subgroup = "p"   # omit this line for pure CSDID
+  data      = example_data,
+  id        = "hospital_id",  # unit of analysis
+  time      = "year",         # calendar year
+  g         = "g",            # first treatment year (state-level)
+  subgroup  = "p",            # only for DR-DDD; omit for pure CSDID
+  group_id  = "state"         # treatment assigned at state level
 )
 
-# 2. (Optional) Label nodes for clarity
+# Label nodes for clarity
 spec <- cat_label(spec)
 
-# 3. Counts per node
+# ---------------------------
+# 5. Summaries and visualization
+# ---------------------------
 cat_counts(spec)
 
-# 4. Plot CAT + save plot + save subgroup-by-year table
+dir.create("man/figures", recursive = TRUE, showWarnings = FALSE)
+
 out <- cat_plot_tree(
   spec,
   save_plot  = "man/figures/CAT_plot_example.png",
   save_table = "man/figures/CAT_summary_example.csv"
 )
 
-# Show the plot in RStudio
 print(out$plot)
+
 
 ```
 
