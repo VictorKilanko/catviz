@@ -82,3 +82,37 @@ The accompanying table summarizes the number of treated units by first treatment
 | 2023 |  48 |  54 |   102 |
 
 (The table is also saved automatically at `man/figures/CAT_summary_example.csv`.)
+
+---
+
+## Interpreting the CAT visualization
+
+The **Causal Assignment Tree (CAT)** decomposes the sample into mutually exclusive branches that reflect treatment timing and subgroup classification.  
+Each node represents a distinct group of units, with counts (`n`) showing the number of unique units in that category.
+
+**Reading the tree:**
+- The root node (“All Groups”) includes all units in the dataset.
+- The tree splits into:
+  - **Treated Groups:** units with a finite first treatment time `g`.
+  - **Never-Treated (g = ∞):** units that never receive treatment.
+- Each treated group is then subdivided by **pre-treatment (t < g)** and **post-treatment (t ≥ g)** periods.
+- If a subgroup variable `p` is defined (as in a DR-DDD framework), branches also split by subgroup (`p = 0` or `p = 1`).
+
+**Interpretation example:**
+In the plot above:
+- 100 unique treated units are split into pre- and post-treatment periods.
+- 80 units are never treated, with subgroups `p = 0` and `p = 1`.
+- Each leaf node (e.g., `(2) t<g, p=1`) shows how many units belong to that treatment-subgroup-period combination.
+
+---
+
+## Interpreting the treatment-year summary
+
+The table lists all first treatment years (`g`) and the number of units in each subgroup:
+- Columns `p_0` and `p_1` correspond to the binary subgroup variable.
+- The `Total` column is the total number of treated units adopting in that year.
+
+For example:
+- In **2016**, 57 units in subgroup 0 and 51 in subgroup 1 were first treated.
+- This summary helps verify balance across treatment cohorts and subgroups before estimation.
+
