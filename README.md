@@ -58,7 +58,7 @@ out <- cat_plot_tree(
 )
 
 # Show the plot in RStudio
-print(out$plot)
+print(out$plot) ```
 
 ## Example output
 
