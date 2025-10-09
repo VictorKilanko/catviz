@@ -59,3 +59,26 @@ out <- cat_plot_tree(
 
 # Show the plot in RStudio
 print(out$plot)
+
+## Example output
+
+### 1. CAT plot
+
+Below is the automatically generated **Causal Assignment Tree (CAT)** showing treated, control, and never-treated branches.
+
+![CAT plot example](man/figures/CAT_plot_example.png)
+
+### 2. Treatment-year summary
+
+The accompanying table summarizes the number of treated units by first treatment year and subgroup:
+
+| g    | p_0 | p_1 | Total |
+|------|----:|----:|------:|
+| 2015 |  56 |  50 |   106 |
+| 2016 |  57 |  51 |   108 |
+| 2019 |  51 |  55 |   106 |
+| 2020 |  54 |  44 |    98 |
+| 2021 |  49 |  55 |   104 |
+| 2023 |  48 |  54 |   102 |
+
+(The table is also saved automatically at `man/figures/CAT_summary_example.csv`.)
