@@ -44,14 +44,14 @@ library(purrr)  # for map()
 
 set.seed(123)
 
-# ---------------------------
+# =======================================================
 # 1. Define simulation setup
-# ---------------------------
+# =======================================================
 states <- sprintf("S%02d", 1:20)    # 20 states
 years  <- 2014:2023
 N_hosp <- 5                         # 5 hospitals per state
 
-# Each state adopts treatment in a different year (staggered)
+# Assign first treatment year (g) per state
 adopt_years <- c(2015, 2016, 2019, 2020, 2021, 2023, Inf)
 
 state_level <- tibble(
@@ -59,9 +59,9 @@ state_level <- tibble(
   g = sample(adopt_years, length(states), replace = TRUE)
 )
 
-# ---------------------------
-# 2. Create hospitals within states
-# ---------------------------
+# =======================================================
+# 2. Create hospitals nested within states
+# =======================================================
 hospitals <- state_level %>%
   mutate(
     hospital_id = map(state, ~ paste0(.x, "_H", 1:N_hosp))
@@ -71,9 +71,9 @@ hospitals <- state_level %>%
     p = sample(0:1, n(), replace = TRUE)  # subgroup (omit for CSDID)
   )
 
-# ---------------------------
+# =======================================================
 # 3. Expand to panel structure
-# ---------------------------
+# =======================================================
 example_data <- expand_grid(
   hospital_id = hospitals$hospital_id,
   year = years
@@ -81,50 +81,113 @@ example_data <- expand_grid(
   left_join(hospitals, by = "hospital_id") %>%
   arrange(hospital_id, year)
 
-# ---------------------------
+# =======================================================
 # 4. Define CAT specification
-# ---------------------------
+# =======================================================
+# Variables in the CSDID / DR-DDD framework:
+# - id: unit of analysis (hospital_id)
+# - group_id: grouping or treatment level (state)
+# - time: time variable (year)
+# - g: first treatment year for the group (state)
+# - subgroup: subgroup classification (p), used for DR-DDD only
+
 spec <- cat_spec(
   data      = example_data,
-  id        = "hospital_id",  # unit of analysis
-  time      = "year",         # calendar year
-  g         = "g",            # first treatment year (state-level)
-  subgroup  = "p",            # only for DR-DDD; omit for pure CSDID
-  group_id  = "state"         # treatment assigned at state level
+  id        = "hospital_id",
+  time      = "year",
+  g         = "g",
+  subgroup  = "p",         # omit for pure CSDID
+  group_id  = "state"      # treatment assigned at state level
 )
 
 # Label nodes for clarity
 spec <- cat_label(spec)
 
-# ---------------------------
-# 5. Summaries and visualization
-# ---------------------------
-cat_counts(spec)
+# =======================================================
+# 5. Summaries
+# =======================================================
+cat_counts(spec)   # counts per node (unit-level by default)
 
+# =======================================================
+# 6. Visualization
+# =======================================================
 dir.create("man/figures", recursive = TRUE, showWarnings = FALSE)
 
-out <- cat_plot_tree(
+# Example 1: Default (unit-level counts)
+out_units <- cat_plot_tree(
   spec,
-  save_plot  = "man/figures/CAT_plot_example.png",
-  save_table = "man/figures/CAT_summary_example.csv"
+  counts    = TRUE,
+  count_by  = "units",   # counts unique hospitals
+  save_plot  = "man/figures/CAT_plot_units.png",
+  save_table = "man/figures/CAT_summary_units.csv"
 )
 
-print(out$plot)
+# Example 2: Observation-level counts
+out_obs <- cat_plot_tree(
+  spec,
+  counts    = TRUE,
+  count_by  = "obs",     # counts hospital-year observations
+  save_plot  = "man/figures/CAT_plot_obs.png",
+  save_table = "man/figures/CAT_summary_obs.csv"
+)
 
+# Example 3: Hide counts (just structure)
+out_nolabel <- cat_plot_tree(
+  spec,
+  counts    = FALSE,
+  save_plot  = "man/figures/CAT_plot_nolabel.png"
+)
+
+# =======================================================
+# 7. Display example plot
+# =======================================================
+print(out_units$plot)
+
+# =======================================================
+# 8. Confirm saved outputs
+# =======================================================
+message("Unit-level plot: man/figures/CAT_plot_units.png")
+message("Observation-level plot: man/figures/CAT_plot_obs.png")
+message("Summary tables saved in man/figures/")
 
 ```
 
-## Example output
+## Example outputs
 
-### 1. CAT plot
+### 1. CAT plot (unit-level counts)
 
-Below is the automatically generated **Causal Assignment Tree (CAT)** showing treated, control, and never-treated branches.
+Below is the automatically generated **Causal Assignment Tree (CAT)** showing treated, control, and never-treated branches, with **counts based on unique units** (hospitals).
 
-![CAT plot example](man/figures/CAT_plot_example.png)
+![CAT plot – unit counts](man/figures/CAT_plot_units.png)
 
-### 2. Treatment-year summary
+- **All Groups (n=100)**: Total number of unique hospitals  
+- **Treated Groups (n=90)**: Hospitals in states that adopted treatment  
+- **Never-Treated (g=∞, n=10)**: Hospitals in states that never adopted treatment  
+- Branches such as `(3) t≥g, p=0` show subgroup and timing splits within treated groups
 
-The accompanying table summarizes the number of treated units by first treatment year and subgroup:
+---
+
+### 2. CAT plot (observation-level counts)
+
+In this version, node counts reflect **total observations** (hospital-year combinations), not unique units.
+
+![CAT plot – observation counts](man/figures/CAT_plot_obs.png)
+
+This helps assess data coverage across pre- and post-treatment periods.
+
+---
+
+### 3. CAT structure only (no counts)
+
+For schematic or publication purposes, you can hide counts entirely:
+
+![CAT plot – structure only](man/figures/CAT_plot_nolabel.png)
+
+---
+
+## 4. Treatment-year summary
+
+The accompanying table summarizes the number of treated **units** by first treatment year and subgroup.
 
 | g    | p_0 | p_1 | Total |
 |------|----:|----:|------:|
@@ -135,38 +198,50 @@ The accompanying table summarizes the number of treated units by first treatment
 | 2021 |  49 |  55 |   104 |
 | 2023 |  48 |  54 |   102 |
 
-(The table is also saved automatically at `man/figures/CAT_summary_example.csv`.)
+📁 The table is also saved automatically as:
+- `man/figures/CAT_summary_units.csv`
+- `man/figures/CAT_summary_obs.csv`
 
 ---
 
 ## Interpreting the CAT visualization
 
-The **Causal Assignment Tree (CAT)** decomposes the sample into mutually exclusive branches that reflect treatment timing and subgroup classification.  
-Each node represents a distinct group of units, with counts (`n`) showing the number of unique units in that category.
+The **Causal Assignment Tree** decomposes the dataset into mutually exclusive groups based on:
+1. **Treatment timing (`g`)**  
+2. **Pre/post period (`t < g` vs `t ≥ g`)**  
+3. **Subgroup (`p`)**  
 
-**Reading the tree:**
-- The root node (“All Groups”) includes all units in the dataset.
-- The tree splits into:
-  - **Treated Groups:** units with a finite first treatment time `g`.
-  - **Never-Treated (g = ∞):** units that never receive treatment.
-- Each treated group is then subdivided by **pre-treatment (t < g)** and **post-treatment (t ≥ g)** periods.
-- If a subgroup variable `p` is defined (as in a DR-DDD framework), branches also split by subgroup (`p = 0` or `p = 1`).
+Each **node** in the tree represents a distinct subset of the data, and the associated count `(n)` corresponds to the number of unique hospitals (or observations, depending on the option selected).
 
-**Interpretation example:**
-In the plot above:
-- 100 unique treated units are split into pre- and post-treatment periods.
-- 80 units are never treated, with subgroups `p = 0` and `p = 1`.
-- Each leaf node (e.g., `(2) t<g, p=1`) shows how many units belong to that treatment-subgroup-period combination.
+### Reading the branches
+- **All Groups**: The entire dataset of hospitals.  
+- **Treated Groups**: States that eventually receive treatment.  
+- **Never-Treated (g=∞)**: States that never receive treatment.  
+- **t < g**: Pre-treatment observations (before adoption).  
+- **t ≥ g**: Post-treatment observations (after adoption).  
+- **p = 0 / 1**: Subgroup categories (for DR-DDD).
+
+### Example interpretation
+- 90 hospitals belong to treated states; 10 are never treated.  
+- Among treated hospitals:
+  - Those observed **before** their treatment year (t < g) appear under `(1)` and `(2)`.
+  - Those observed **after** treatment (t ≥ g) appear under `(3)` and `(4)`.  
+- The **subgroup split (`p=0`, `p=1`)** reveals balance across treated vs control subpopulations.
 
 ---
 
-## Interpreting the treatment-year summary
+## 5. Why count type matters
 
-The table lists all first treatment years (`g`) and the number of units in each subgroup:
-- Columns `p_0` and `p_1` correspond to the binary subgroup variable.
-- The `Total` column is the total number of treated units adopting in that year.
+By default, `cat_plot_tree()` counts **unique units (`count_by = "units"`)**, which is consistent with CSDID or DR-DDD analysis where the treatment effect is at the unit level.  
+However, users can also choose **`count_by = "obs"`** to count total **unit-year observations**, which helps verify panel balance or data coverage.
 
-For example:
-- In **2016**, 57 units in subgroup 0 and 51 in subgroup 1 were first treated.
-- This summary helps verify balance across treatment cohorts and subgroups before estimation.
+| Option | Counts what | Use when |
+|--------|--------------|----------|
+| `count_by = "units"` | Unique entities (e.g. hospitals) | For effect estimation setup |
+| `count_by = "obs"` | Total observations (e.g. hospital-year) | For panel completeness / sample checks |
+| `counts = FALSE` | Hides counts entirely | For schematic figures or publications |
 
+---
+
+### Output verification
+All outputs are saved in the `man/figures/` directory:
