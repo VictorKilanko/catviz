@@ -1,0 +1,35 @@
+Package: catviz
+Title: Visualizing Causal Assignment Trees for CSDID and DR-DDD Designs
+Version: 0.1.0
+Authors@R: 
+    person("Victor", "Kilanko", email = "victorkilanko@gmail.com", role = c("aut", "cre"))
+Description: Tools for constructing, labeling, and visualizing Causal Assignment Trees (CATs)
+    in settings with staggered adoption (Callaway–Sant’Anna CSDID) and triple-difference
+    (doubly robust DDD). The package helps clarify treatment timing, never-treated vs.
+    not-yet-treated composition, and subgroup structure, and produces publication-quality
+    diagrams and summary tables. Current functionality focuses on data-to-node mapping,
+    node counts, cohort-year summaries, and high-quality tree plots suitable for empirical
+    applications prior to estimation.
+License: MIT + file LICENSE
+URL: https://github.com/VictorKilanko/catviz
+BugReports: https://github.com/VictorKilanko/catviz/issues
+Encoding: UTF-8
+Depends: 
+    R (>= 4.1.0)
+Imports:
+    dplyr,
+    ggplot2,
+    ggraph,
+    igraph,
+    glue,
+    readr,
+    tidyr,
+    purrr,
+    grid,
+    rlang
+Suggests:
+    tikzDevice,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
