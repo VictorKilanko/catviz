@@ -1,8 +1,40 @@
-# catviz: Causal Assignment Tree Visualization for Staggered DiD, DDD, and Related Designs
+# catviz: Causal Assignment Tree Visualization for DiD, DDD, and Related Designs (Staggered or Not)
 
-**catviz** is an R package for visualizing and understanding **Causal Assignment Trees (CATs)** — hierarchical structures that summarize treatment timing, subgroup composition, and sample classification in **staggered difference-in-differences (CSDID) and staggered DDD like DRDDD** and related causal inference frameworks.
+**catviz** is an R package for visualizing and diagnosing **Causal Assignment Trees (CATs)** — hierarchical diagrams that organize units according to **treatment timing, subgroup membership**, and **treatment status** in causal inference designs such as **Difference-in-Differences (DiD)**, **CSDID**, and **DDD**.
 
-It provides a publication-ready visualization of treated, control, and never-treated groups, along with counts and subgroup summaries, to help researchers verify sample balance and treatment assignment logic.
+The package supports **both staggered and non-staggered adoption settings**, allowing users to easily visualize how units (e.g., states, firms, hospitals) transition from untreated to treated over time — or remain never treated. At its simplest, `catviz` is a clean and transparent visualization tool; at its best, it helps researchers solidify the definition and selection of treated and comparison groups, providing a clearer foundation for causal interpretation.
+
+With just a few lines of code, `catviz` automatically builds a clean, publication-ready **CAT plot** and an accompanying **summary table** of treated groups by first treatment year and subgroup (if applicable).
+
+---
+
+### Key Features
+
+- **Unified visualization** for:
+  - Standard Difference-in-Differences (DiD)
+  - CSDID (Callaway & Sant’Anna)
+  - DR-DDD (Doubly Robust Difference-in-Difference-in-Differences or DDD)
+- **Works seamlessly with or without subgroups (`p`)**
+  - If `subgroup` is provided → full 6-branch DDD tree
+  - If `subgroup` is omitted → simple 3-branch DiD tree
+- **Compatible with both staggered and single-wave treatments**
+  - Handles multiple treatment cohorts or a single adoption year
+- **Flexible counting options**
+  - Count by **units** (unique entities) or **observations** (unit-time pairs)
+- **Automatic labeling & summaries**
+  - Generates canonical CAT node labels and a treatment-year summary table
+- **Publication-ready visualization**
+  - Clean, layered tree plots for inclusion in papers and diagnostics
+
+---
+
+### When to Use `catviz`
+
+Use `catviz` whenever you want to **understand or verify your sample structure** before estimating DiD or DDD models — for instance:
+- Check that treated and never-treated units are correctly defined
+- Verify treatment timing alignment (`t < g` vs. `t ≥ g`)
+- Ensure subgroup splits (if any) are properly classified
+- Document your treatment design transparently for replication
 
 ---
 
@@ -10,7 +42,7 @@ It provides a publication-ready visualization of treated, control, and never-tre
 
 The example creates simulated panel data for **hospitals nested within states**,  
 where **states adopt treatment at different years**, and hospitals may also belong  
-to binary subgroups (for DR-DDD analysis).
+to binary subgroups (for DDD analysis).
 
 ---
 
@@ -22,7 +54,7 @@ to binary subgroups (for DR-DDD analysis).
 | `state` | **Group ID** | State identifier — treatment is assigned at this level. All hospitals in a state share the same treatment adoption year `g`. |
 | `year` | **Time** | Calendar year (panel time dimension). |
 | `g` | **First Treatment Year** | The first year the state adopts treatment (or `Inf` if never treated). |
-| `p` | **Subgroup** | Binary subgroup indicator (e.g., `p = 0` vs. `p = 1`), used only for **DR-DDD**. Omit this variable for **CSDID**. |
+| `p` | **Subgroup** | Binary subgroup indicator (e.g., `p = 0` vs. `p = 1`), used only for **DDD**. Omit this variable for **DID**. |
 
 ---
 
@@ -68,7 +100,7 @@ hospitals <- state_level %>%
   ) %>%
   unnest(hospital_id) %>%
   mutate(
-    p = sample(0:1, n(), replace = TRUE)  # subgroup (omit for CSDID)
+    p = sample(0:1, n(), replace = TRUE)  # subgroup (omit for DID)
   )
 
 # =======================================================
