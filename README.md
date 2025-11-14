@@ -1,48 +1,66 @@
-# catviz: Causal Assignment Tree Visualization for DiD, DDD, and Related Designs (Staggered or Not)
+# catviz: Causal Assignment Tree Visualization for DiD, CSDID, and DDD
 
-**catviz** is an R package for visualizing and diagnosing **Causal Assignment Trees (CATs)** — hierarchical diagrams that organize units according to **treatment timing, subgroup membership**, and **treatment status** in causal inference designs such as **Difference-in-Differences (DiD)**, **CSDID**, and **DDD**.
+**catviz** is an R package for visualizing and diagnosing **Causal Assignment Trees (CATs)** — hierarchical diagrams that show how units are assigned to treatment, comparison, and subgroup branches in causal inference designs such as:
 
-The package supports **both staggered and non-staggered adoption settings**, allowing users to easily visualize how units (e.g., states, firms, hospitals) transition from untreated to treated over time — or remain never treated. At its simplest, `catviz` is a clean and transparent visualization tool; at its best, it helps researchers solidify the definition and selection of treated and comparison groups, providing a clearer foundation for causal interpretation.
+- **Difference-in-Differences (DiD)**
+- **CSDID** (Callaway & Sant’Anna)
+- **DDD** (Difference-in-Difference-in-Differences)
 
-With just a few lines of code, `catviz` automatically builds a clean, publication-ready **CAT plot** and an accompanying **summary table** of treated groups by first treatment year and subgroup (if applicable).
+The package supports **staggered** and **non-staggered** adoption and helps researchers:
+
+- verify treatment timing (`g`)
+- confirm cohort definitions
+- examine pre/post splitting (`t < g` vs. `t ≥ g`)
+- inspect subgroup splits (DDD)
+- produce clean, publication-ready diagrams
+- generate cohort summary tables
+
+---
+
+## ⭐ Key Features
+
+- Unified visualization for **DiD**, **CSDID**, and **DDD**
+- Supports **any number of treated cohorts** (`g = 2…10`) + **never-treated**
+- Optional binary subgroup splitting (`Q = 0/1`)
+- Counts by **units** or **observations**
+- Optional **count-free** “schematic” diagrams for publications
+- Automatically saves:
+  - CAT plot (`.png`)
+  - Summary table (`.csv`)
+- Works out of the box with minimal code
 
 ---
 
-### Key Features
+## 📦 Installation
 
-- **Unified visualization** for:
-  - Standard Difference-in-Differences (DiD)
-  - CSDID (Callaway & Sant’Anna)
-  - DR-DDD (Doubly Robust Difference-in-Difference-in-Differences or DDD)
-- **Works seamlessly with or without subgroups (`p`)**
-  - If `subgroup` is provided → full 6-branch DDD tree
-  - If `subgroup` is omitted → simple 3-branch DiD tree
-- **Compatible with both staggered and single-wave treatments**
-  - Handles multiple treatment cohorts or a single adoption year
-- **Flexible counting options**
-  - Count by **units** (unique entities) or **observations** (unit-time pairs)
-- **Automatic labeling & summaries**
-  - Generates canonical CAT node labels and a treatment-year summary table
-- **Publication-ready visualization**
-  - Clean, layered tree plots for inclusion in papers and diagnostics
+```r
+install.packages("devtools")
+devtools::install_github("VictorKilanko/catviz")
 
----
 
 ### When to Use `catviz`
 
-Use `catviz` whenever you want to **understand or verify your sample structure** before estimating DiD or DDD models — for instance:
-- Check that treated and never-treated units are correctly defined
-- Verify treatment timing alignment (`t < g` vs. `t ≥ g`)
-- Ensure subgroup splits (if any) are properly classified
-- Document your treatment design transparently for replication
+Use `catviz` whenever you want to **understand or verify your causal design structure** before estimating DiD, CSDID, or DDD models — for instance:
+
+- Check that treated and never-treated units are correctly defined  
+- Verify treatment timing (`t < g` vs. `t ≥ g`)  
+- Confirm that treatment cohorts (`g`) are properly recorded  
+- Ensure subgroup splits (`Q`) exist and are correctly coded (DDD only)  
+- Produce clean, publication-ready diagrams of your identification design  
+- Document your treatment structure transparently for replication  
 
 ---
 
 ## Working Example
 
-The example creates simulated panel data for **hospitals nested within states**,  
-where **states adopt treatment at different years**, and hospitals may also belong  
-to binary subgroups (for DDD analysis).
+The following example simulates panel data for **hospitals nested inside states**,  
+where:
+
+- States adopt treatment at different years (`g`)
+- Hospitals inherit the treatment timing of their state
+- Hospitals may also belong to binary subgroups (`Q`) for DDD analysis
+
+The same dataset can be used to create **DiD**, **CSDID**, and **DDD** trees depending on whether you include `subgroup`.
 
 ---
 
@@ -50,230 +68,101 @@ to binary subgroups (for DDD analysis).
 
 | Variable | Role | Description |
 |-----------|------|-------------|
-| `hospital_id` | **Unit ID** | Unique identifier for each hospital (unit of analysis). |
-| `state` | **Group ID** | State identifier — treatment is assigned at this level. All hospitals in a state share the same treatment adoption year `g`. |
-| `year` | **Time** | Calendar year (panel time dimension). |
-| `g` | **First Treatment Year** | The first year the state adopts treatment (or `Inf` if never treated). |
-| `p` | **Subgroup** | Binary subgroup indicator (e.g., `p = 0` vs. `p = 1`), used only for **DDD**. Omit this variable for **DID**. |
+| `hospital_id` | **Unit ID** | Unique identifier for each hospital. |
+| `state` | **Group ID** | Treatment occurs at the state level; all hospitals in a state share the same first treatment year `g`. |
+| `year` | **Time** | Calendar year (panel time). |
+| `g` | **First Treatment Year** | Earliest year the state adopts treatment, or `Inf` if never treated. |
+| `Q` | **Subgroup** | Binary subgroup (0/1), required **only for DDD**. |
 
 ---
 
-## Example code
+## Example Code
 
 ```r
 # =======================================================
 # Example: State-level staggered adoption with subgroups
 # =======================================================
 
-# Install if needed
 # install.packages("devtools")
 # devtools::install_github("VictorKilanko/catviz")
 
 library(catviz)
 library(dplyr)
 library(tidyr)
-library(purrr)  # for map()
+library(purrr)
 
 set.seed(123)
 
 # =======================================================
-# 1. Define simulation setup
+# 1. State structure
 # =======================================================
-states <- sprintf("S%02d", 1:20)    # 20 states
+states <- sprintf("S%02d", 1:20)
 years  <- 2014:2023
-N_hosp <- 5                         # 5 hospitals per state
+N_hosp <- 5
 
-# Assign first treatment year (g) per state
-adopt_years <- c(2015, 2016, 2019, 2020, 2021, 2023, Inf)
+treat_years <- c(2015, 2016, 2019, 2020, 2021, 2023, Inf)
 
-state_level <- tibble(
+state_info <- tibble(
   state = states,
-  g = sample(adopt_years, length(states), replace = TRUE)
+  g     = sample(treat_years, length(states), replace = TRUE)
 )
 
 # =======================================================
-# 2. Create hospitals nested within states
+# 2. Hospitals nested in states
 # =======================================================
-hospitals <- state_level %>%
-  mutate(
-    hospital_id = map(state, ~ paste0(.x, "_H", 1:N_hosp))
-  ) %>%
+hospitals <- state_info %>%
+  mutate(hospital_id = map(state, ~ paste0(.x, "_H", 1:N_hosp))) %>%
   unnest(hospital_id) %>%
-  mutate(
-    p = sample(0:1, n(), replace = TRUE)  # subgroup (omit for DID)
-  )
+  mutate(Q = rbinom(n(), 1, 0.5))   # subgroup for DDD (omit for DID)
 
 # =======================================================
-# 3. Expand to panel structure
+# 3. Expand to panel
 # =======================================================
-example_data <- expand_grid(
+panel <- expand_grid(
   hospital_id = hospitals$hospital_id,
-  year = years
+  year        = years
 ) %>%
   left_join(hospitals, by = "hospital_id") %>%
   arrange(hospital_id, year)
 
 # =======================================================
-# 4. Define CAT specification
+# 4. Build CAT specification
 # =======================================================
-# Variables in the CSDID / DR-DDD framework:
-# - id: unit of analysis (hospital_id)
-# - group_id: grouping or treatment level (state)
-# - time: time variable (year)
-# - g: first treatment year for the group (state)
-# - subgroup: subgroup classification (p), used for DR-DDD only
-
 spec <- cat_spec(
-  data      = example_data,
-  id        = "hospital_id",
-  time      = "year",
-  g         = "g",
-  subgroup  = "p",         # omit for pure CSDID
-  group_id  = "state"      # treatment assigned at state level
+  data     = panel,
+  id       = "hospital_id",
+  time     = "year",
+  g        = "g",
+  subgroup = "Q",       # remove this line for DID or CSDID
+  group_id = "state"
 )
 
-# Label nodes for clarity
 spec <- cat_label(spec)
 
 # =======================================================
-# 5. Summaries
+# 5. Counts summary
 # =======================================================
-cat_counts(spec)   # counts per node (unit-level by default)
+cat_counts(spec)
 
 # =======================================================
-# 6. Visualization
+# 6. Visualizations
 # =======================================================
 dir.create("man/figures", recursive = TRUE, showWarnings = FALSE)
 
-# Example 1: Default (unit-level counts)
-out_units <- cat_plot_tree(
-  spec,
-  counts    = TRUE,
-  count_by  = "units",   # counts unique hospitals
-  save_plot  = "man/figures/CAT_plot_units.png",
-  save_table = "man/figures/CAT_summary_units.csv"
-)
+# DID diagram (ignore subgroup)
+p_did <- cat_plot_did(spec)
+ggplot2::ggsave("man/figures/did.png", p_did, width = 10, height = 7)
 
-# Example 2: Observation-level counts
-out_obs <- cat_plot_tree(
-  spec,
-  counts    = TRUE,
-  count_by  = "obs",     # counts hospital-year observations
-  save_plot  = "man/figures/CAT_plot_obs.png",
-  save_table = "man/figures/CAT_summary_obs.csv"
-)
+# CSDID diagram (cohorts only)
+p_csdid <- cat_plot_csdid(spec)
+ggplot2::ggsave("man/figures/csdid.png", p_csdid, width = 10, height = 7)
 
-# Example 3: Hide counts (just structure)
-out_nolabel <- cat_plot_tree(
-  spec,
-  counts    = FALSE,
-  save_plot  = "man/figures/CAT_plot_nolabel.png"
-)
+# DDD diagram (cohorts × Q)
+p_ddd <- cat_plot_ddd(spec)
+ggplot2::ggsave("man/figures/ddd.png", p_ddd, width = 10, height = 7)
 
 # =======================================================
-# 7. Display example plot
+# 7. Display example
 # =======================================================
-print(out_units$plot)
+print(p_ddd)
 
-# =======================================================
-# 8. Confirm saved outputs
-# =======================================================
-message("Unit-level plot: man/figures/CAT_plot_units.png")
-message("Observation-level plot: man/figures/CAT_plot_obs.png")
-message("Summary tables saved in man/figures/")
-
-```
-
-## Example outputs
-
-### 1. CAT plot (unit-level counts)
-
-Below is the automatically generated **Causal Assignment Tree (CAT)** showing treated, control, and never-treated branches, with **counts based on unique units** (hospitals).
-
-![CAT plot – unit counts](man/figures/CAT_plot_units.png)
-
-- **All Groups (n=100)**: Total number of unique hospitals  
-- **Treated Groups (n=90)**: Hospitals in states that adopted treatment  
-- **Never-Treated (g=∞, n=10)**: Hospitals in states that never adopted treatment  
-- Branches such as `(3) t≥g, p=0` show subgroup and timing splits within treated groups
-
----
-
-### 2. CAT plot (observation-level counts)
-
-In this version, node counts reflect **total observations** (hospital-year combinations), not unique units.
-
-![CAT plot – observation counts](man/figures/CAT_plot_obs.png)
-
-This helps assess data coverage across pre- and post-treatment periods.
-
----
-
-### 3. CAT structure only (no counts)
-
-For schematic or publication purposes, you can hide counts entirely:
-
-![CAT plot – structure only](man/figures/CAT_plot_nolabel.png)
-
----
-
-## 4. Treatment-year summary
-
-The accompanying table summarizes the number of treated **units** by first treatment year and subgroup.
-
-| g    | p_0 | p_1 | Total |
-|------|----:|----:|------:|
-| 2015 |  5 |  5 |   10 |
-| 2016 |  9 |  6 |   15 |
-| 2019 |  16 |  14 |   30 |
-| 2020 |  4 |  1 |    5 |
-| 2021 |  5 |  5 |   10 |
-| 2023 |  9 |  11 |   20 |
-
-📁 The table is also saved automatically as:
-- `man/figures/CAT_summary_units.csv`
-- `man/figures/CAT_summary_obs.csv`
-
----
-
-## Interpreting the CAT visualization
-
-The **Causal Assignment Tree** decomposes the dataset into mutually exclusive groups based on:
-1. **Treatment timing (`g`)**  
-2. **Pre/post period (`t < g` vs `t ≥ g`)**  
-3. **Subgroup (`p`)**  
-
-Each **node** in the tree represents a distinct subset of the data, and the associated count `(n)` corresponds to the number of unique hospitals (or observations, depending on the option selected).
-
-### Reading the branches
-- **All Groups**: The entire dataset of hospitals.  
-- **Treated Groups**: States that eventually receive treatment.  
-- **Never-Treated (g=∞)**: States that never receive treatment.  
-- **t < g**: Pre-treatment observations (before adoption).  
-- **t ≥ g**: Post-treatment observations (after adoption).  
-- **p = 0 / 1**: Subgroup categories (for DR-DDD).
-
-### Example interpretation
-- 90 hospitals belong to treated states; 10 are never treated.  
-- Among treated hospitals:
-  - Those observed **before** their treatment year (t < g) appear under `(1)` and `(2)`.
-  - Those observed **after** treatment (t ≥ g) appear under `(3)` and `(4)`.  
-- The **subgroup split (`p=0`, `p=1`)** reveals balance across treated vs control subpopulations.
-
----
-
-## 5. Why count type matters
-
-By default, `cat_plot_tree()` counts **unique units (`count_by = "units"`)**, which is consistent with CSDID or DR-DDD analysis where the treatment effect is at the unit level.  
-However, users can also choose **`count_by = "obs"`** to count total **unit-year observations**, which helps verify panel balance or data coverage.
-
-| Option | Counts what | Use when |
-|--------|--------------|----------|
-| `count_by = "units"` | Unique entities (e.g. hospitals) | For effect estimation setup |
-| `count_by = "obs"` | Total observations (e.g. hospital-year) | For panel completeness / sample checks |
-| `counts = FALSE` | Hides counts entirely | For schematic figures or publications |
-
----
-
-### Output verification
-All outputs are saved in the `man/figures/` directory:
