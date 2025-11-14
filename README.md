@@ -17,10 +17,10 @@ The package supports **staggered** and **non-staggered** adoption and helps rese
 
 ---
 
-## ⭐ Key Features
+## Key Features
 
 - Unified visualization for **DiD**, **CSDID**, and **DDD**
-- Supports **any number of treated cohorts** (`g = 2…10`) + **never-treated**
+- Supports **any number of treated cohorts** (`g = 2-10`) + **never-treated**
 - Optional binary subgroup splitting (`Q = 0/1`)
 - Counts by **units** or **observations**
 - Optional **count-free** “schematic” diagrams for publications
@@ -31,13 +31,13 @@ The package supports **staggered** and **non-staggered** adoption and helps rese
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```r
 install.packages("devtools")
 devtools::install_github("VictorKilanko/catviz")
 
-
+```
 ### When to Use `catviz`
 
 Use `catviz` whenever you want to **understand or verify your causal design structure** before estimating DiD, CSDID, or DDD models — for instance:
