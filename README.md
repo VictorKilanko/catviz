@@ -570,6 +570,7 @@ MIT License. See [LICENSE](LICENSE) file for details.
 
 - Callaway, B., & Sant'Anna, P. H. (2021). Difference-in-differences with multiple time periods. *Journal of Econometrics*, 225(2), 200-230.
 - Goodman-Bacon, A. (2021). Difference-in-differences with variation in treatment timing. *Journal of Econometrics*, 225(2), 254-277.
+- Kilanko, V. (2025). Visualizing Counterfactuals: A Causal Assignment Tree Approach for DiD, CSDID, and DDD. Working Paper.
 - Ortiz-Villavicencio, L., & Sant'Anna, P. H. C. (2025). Difference-in-Difference-in-Differences. Working Paper.
 
 ---
