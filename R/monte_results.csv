@@ -1,0 +1,6 @@
+"Estimator","Bias (% of ATT)","RMSE","Coverage (95% CI)"
+"TWFE",-12.2,0.13,42.1
+"CSDiD-CAT (never-treated comparison)",-0.3,0.08,95.2
+"CSDiD-CAT (not-yet-treated comparison)",-0.2,0.08,94.7
+"DDD-CAT (never-treated comparison)",0.7,0.17,93.7
+"DDD-CAT (not-yet-treated comparison)",0.7,0.17,93

@@ -1,0 +1,174 @@
+================================================================================
+catviz — AI Cold Start Log
+Last updated: 2026-03-14
+================================================================================
+
+PURPOSE: This file is an AI cold-start log. Read it first every session to
+know what has been done and what still needs to be done.
+
+================================================================================
+WHAT HAS BEEN DONE (Session 1 — 2026-03-13)
+================================================================================
+
+1. CODE AUDIT & BUG FIXES
+   - Removed cat_diag_wrapper.R (duplicate definition of cat_diag() that was
+     overriding the better version in cat_diag.R)
+   - Fixed cat_label.R: was hardcoded for g=2,3,4,5 — now dynamically assigns
+     letters A,B,C,... to any sorted cohort values
+   - Fixed cat_spec.R: added @export roxygen tag + proper roxygen docs; now
+     properly exported when installed as a package
+   - Fixed cat_diag.R: cat_pt_csdid() and cat_pt_drddd() no longer require
+     .treated/.control columns (which were never created); now derive groups
+     directly from .NT and .subgroup
+   - Fixed cat_balance.R: by="design" now splits on .NT rather than
+     nonexistent .treated/.control columns
+   - Removed unused imports ggraph, igraph, readr from DESCRIPTION (not used)
+   - Added tibble to DESCRIPTION Imports (was used but not listed)
+
+2. NEW FUNCTIONS ADDED
+   - cat_plot_tree.R: unified dispatcher that auto-selects DiD/CSDiD/DDD
+     based on the spec object. This is the recommended user-facing function.
+   - Added grayscale=TRUE option in cat_plot_tree() for B&W publications
+   - utils.R: imports %||% from rlang package-wide
+
+3. NAMESPACE REGENERATED
+   - devtools::document() regenerated NAMESPACE
+   - Now exports: cat_spec, cat_label, cat_plot_tree (were missing before)
+   - Now imports: rlang::%||%
+
+4. FOLDER STRUCTURE CREATED
+   R/examples/
+     - example_csdid_psychedelics.R  (from R6 folder; psychedelic cities)
+     - example_ddd_hospitals.R       (simulated hospital DDD)
+     - example_ddd_medicaid.R        (from root medicaid script)
+     - medicaid_ddd.csv              (Medicaid panel data, 9 key columns)
+     - catviz_full_demo.R            *** MAIN DEMO — run this ***
+     - output/                       (auto-created; all plots saved here)
+
+   PACKAGE/
+     - All 11 catviz R source scripts (ready to copy/use)
+
+   CRAN/catviz/
+     - Complete CRAN submission folder (see below)
+
+5. DEMO SCRIPT: R/examples/catviz_full_demo.R
+   - Covers ALL functions: cat_spec, cat_label, cat_counts,
+     cat_plot_tree (DiD/CSDiD/DDD), grayscale plots, cat_save_png,
+     cat_att_equation, cat_balance_table, cat_balance_plot,
+     cat_diag, cat_design_*, generate_cohort_labels
+   - Uses real Medicaid data for DDD section (medicaid_ddd.csv)
+   - TESTED AND WORKING — all 9 output plots generated successfully
+
+6. CRAN SUBMISSION FOLDER: CRAN/catviz/
+   Contains everything needed for CRAN submission:
+   - DESCRIPTION (updated: removed unused deps, added tibble)
+   - NAMESPACE (regenerated)
+   - R/*.R (all source files)
+   - man/*.Rd (all help files)
+   - (no data folder — chapter1log.csv removed; was 38 MB, exceeded CRAN limit)
+   - tests/testthat/test-cat_spec.R (10 unit tests)
+   - tests/testthat.R
+   - vignettes/catviz-intro.Rmd (complete vignette with all examples)
+   - LICENSE, LICENSE.md, README.md
+   - NEWS.md (version history)
+   - cran-comments.md (notes for CRAN reviewers)
+
+================================================================================
+WHAT STILL NEEDS TO BE DONE
+================================================================================
+
+[ ] Paper.txt (Paper.md) — update with:
+    a. Section on new functions: cat_plot_tree(), grayscale option
+    b. Full worked example code (DiD, CSDiD, DDD) using catviz
+    c. Journal-ready improvements as requested in Claude.md step 7
+    d. Econometrics journal polish: formal identification, propositions,
+       parallel trends discussion, simulation evidence, extensive references
+
+[X] R CMD check — PASSED (Session 2, 2026-03-14)
+    Result: 0 errors, 0 warnings, 2 notes
+    Notes are harmless: (1) timestamp check (network issue), (2) LICENSE.md
+    and cran-comments.md at top level (expected by CRAN reviewers)
+    Fixes applied in Session 2: removed 38MB chapter1log.csv from data/,
+    replaced all non-ASCII chars (Unicode symbols) in all R files,
+    fixed cat_diag.Rd (removed "auto" from method), added balance_tbl
+    param to cat_balance_plot.Rd, added utils::globalVariables() to utils.R
+
+[ ] Test suite — add more tests in CRAN/catviz/tests/testthat/ covering:
+    - cat_balance_table and cat_balance_plot
+    - cat_diag (all three methods)
+    - cat_plot_tree (save_plot argument)
+
+[ ] CRAN README update — update README.md examples to use cat_plot_tree()
+    instead of the old cat_plot_tree() which referenced nonexistent function
+
+[ ] GitHub — push final code to VictorKilanko/catviz repository
+
+[ ] Vignette check — ensure vignettes/catviz-intro.Rmd knits without errors
+
+================================================================================
+PACKAGE STRUCTURE (current)
+================================================================================
+
+catviz/                          Root
+├── R/                           Source files
+│   ├── cat_spec.R               Entry point: build spec
+│   ├── cat_label.R              Add cohort letters (dynamic)
+│   ├── cat_plot_tree.R          *** Unified plot dispatcher ***
+│   ├── cat_plot.R               DiD / CSDiD / DDD plot functions
+│   ├── cat_diag.R               Diagnostic plots (event, drddd, csdid)
+│   ├── cat_balance.R            Balance table + Love plot
+│   ├── cat_counts.R             Node counts
+│   ├── cat_designs.R            Blueprint tree structures
+│   ├── cat_att_equation.R       ATT formula text/LaTeX
+│   ├── cat_save_png.R           Save plot to PNG
+│   ├── utils.R                  Internal utilities (%||% import)
+│   └── examples/                Example scripts + data
+│       ├── catviz_full_demo.R   *** Run this to see all functions ***
+│       ├── medicaid_ddd.csv     Real DDD data (45k rows)
+│       └── ...
+├── PACKAGE/                     All R scripts (flat copy)
+├── CRAN/catviz/                 CRAN submission-ready folder
+├── man/                         Rd help files (auto-generated)
+├── DESCRIPTION
+├── NAMESPACE
+└── LOG_UPDATE.TXT               ← this file
+
+================================================================================
+HOW TO USE catviz (quick reference)
+================================================================================
+
+## Step 1: Build spec
+spec <- cat_spec(data, id="hospital_id", time="year", g="g",
+                 subgroup="p",   # omit for pure CSDiD
+                 group_id="state")
+
+## Step 2: Label cohorts (optional but recommended)
+spec <- cat_label(spec)
+
+## Step 3: Count nodes
+cat_counts(spec)
+
+## Step 4: Plot (auto-selects DiD / CSDiD / DDD)
+p <- cat_plot_tree(spec, counts=TRUE)
+p <- cat_plot_tree(spec, grayscale=TRUE)   # B&W version
+
+## Direct access to specific plots
+cat_plot_did(spec)        # 2x2 DiD
+cat_plot_csdid(spec)      # CSDiD
+cat_plot_ddd(spec)        # DDD
+
+## Save
+cat_save_png(p, "tree.png", width=14, height=9, dpi=400)
+
+## Diagnostics
+cat_diag(spec, outcome="outcome_var", method="csdid")
+cat_diag(spec, outcome="outcome_var", method="drddd")
+cat_diag(spec, method="event")
+
+## ATT equations
+cat_att_equation("drddd")
+cat_att_equation("csdid", subgroup_value=1)
+
+## Balance
+bal <- cat_balance_table(spec, covariates=c("var1","var2"), by="node")
+cat_balance_plot(bal)

@@ -1,0 +1,23 @@
+# R session artifacts
+.RData
+.Rhistory
+.Rproj.user/
+*.Rproj
+
+# Large local data files
+R/examples/chapter1log.csv
+
+# Build artifacts
+*.tar.gz
+build_output.txt
+check_output.txt
+check_output2.txt
+run_check.R
+run_check2.R
+run_check3.R
+run_check_final.R
+run_check_out.R
+
+# Misc
+Thumbs.db
+.DS_Store

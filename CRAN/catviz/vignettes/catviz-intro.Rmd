@@ -1,0 +1,229 @@
+---
+title: "Introduction to catviz: Visualizing Causal Assignment Trees"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to catviz}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  fig.width  = 9,
+  fig.height = 6
+)
+```
+
+## Overview
+
+**catviz** helps you visualize the **Causal Assignment Tree (CAT)** — a hierarchical diagram that maps your panel dataset onto the treatment-timing cells used by modern difference-in-differences estimators.
+
+The CAT makes it easy to:
+
+- Verify treatment timing and never-treated group composition
+- Inspect subgroup splits (for DDD / DR-DDD designs)
+- Communicate your research design to referees and readers
+- Check sample sizes **before** running the estimator
+
+Three designs are supported:
+
+| Design | Description |
+|--------|-------------|
+| **2×2 DiD** | Single treatment cohort, single pre/post split |
+| **CSDiD** | Staggered adoption (Callaway & Sant'Anna 2021) |
+| **DDD / DR-DDD** | Staggered adoption × binary subgroup |
+
+---
+
+## Installation
+
+```r
+# From CRAN (once released)
+install.packages("catviz")
+
+# Development version from GitHub
+# devtools::install_github("VictorKilanko/catviz")
+```
+
+---
+
+## Quick start — three designs in ten lines
+
+```{r quick_start}
+library(catviz)
+library(dplyr)
+
+# Simulated hospital panel: states adopt treatment at different years
+set.seed(1)
+df <- expand.grid(
+  hospital_id = paste0("H", 1:30),
+  year        = 2015:2022
+) %>%
+  mutate(
+    state = rep(paste0("S", 1:6), each = 5)[match(hospital_id, paste0("H", 1:30))],
+    g     = c(rep(2017, 10), rep(2019, 10), rep(Inf, 10))[
+              match(hospital_id, paste0("H", 1:30))],
+    p     = sample(0:1, n(), replace = TRUE)
+  )
+
+# --- CSDID (no subgroup) ---
+spec_cs <- cat_spec(df, id = "hospital_id", time = "year", g = "g")
+cat_plot_tree(spec_cs)
+
+# --- DDD (with subgroup p) ---
+spec_ddd <- cat_spec(df, id = "hospital_id", time = "year", g = "g", subgroup = "p")
+cat_plot_tree(spec_ddd)
+
+# --- Grayscale (for B&W publications) ---
+cat_plot_tree(spec_ddd, grayscale = TRUE)
+```
+
+---
+
+## Step-by-step walkthrough
+
+### 1. Build the specification
+
+`cat_spec()` is the entry point. It attaches internal columns to your data
+(`.g`, `.NT`, `.node`, etc.) and stores the variable mapping.
+
+```{r cat_spec}
+spec <- cat_spec(
+  data     = df,
+  id       = "hospital_id",   # unit of analysis
+  time     = "year",          # time variable
+  g        = "g",             # first treatment year (Inf = never treated)
+  subgroup = "p",             # binary subgroup (omit for pure CSDID)
+  group_id = "state"          # treatment assigned at state level (optional)
+)
+```
+
+### 2. Add cohort labels (optional but recommended)
+
+`cat_label()` assigns letters (A, B, C, …) to treatment cohorts in
+chronological order. Never-treated units receive the last letter.
+
+```{r cat_label}
+spec <- cat_label(spec)
+
+# Inspect the label assignments
+spec$data %>%
+  distinct(.g, .cohort_letter, .g_pretty) %>%
+  arrange(.g)
+```
+
+### 3. Count units per node
+
+```{r cat_counts}
+cat_counts(spec)
+```
+
+Each row corresponds to one CAT node. Nodes encode:
+
+- **`.NT == 1`**: never-treated
+- **`t < g`**: pre-treatment observations
+- **`t ≥ g`**: post-treatment observations
+- **`p = 0 / 1`**: subgroup split (DDD only)
+
+### 4. Plot the tree
+
+```{r cat_plot_tree_ddd, fig.width=10, fig.height=7}
+cat_plot_tree(spec, counts = TRUE)
+```
+
+#### Grayscale version
+
+```{r cat_plot_tree_gray, fig.width=10, fig.height=7}
+cat_plot_tree(spec, counts = TRUE, grayscale = TRUE)
+```
+
+#### Save to file
+
+```r
+cat_plot_tree(spec, save_plot = "my_cat_tree.png")
+# or
+p <- cat_plot_tree(spec)
+cat_save_png(p, "my_cat_tree.png", width = 14, height = 9, dpi = 400)
+```
+
+---
+
+## Calling specific plot functions
+
+`cat_plot_tree()` auto-dispatches, but you can call the underlying
+functions directly for fine-grained control:
+
+```r
+# Explicitly call CSDiD plot
+cat_plot_csdid(spec_cs, counts = TRUE)
+
+# Explicitly call DDD plot
+cat_plot_ddd(spec_ddd, counts = TRUE)
+
+# Explicitly call 2×2 DiD plot (single cohort)
+spec_did <- cat_spec(df %>% mutate(g = ifelse(g==Inf, Inf, 2017)),
+                     id = "hospital_id", time = "year", g = "g")
+cat_plot_did(spec_did, counts = TRUE)
+```
+
+---
+
+## ATT formulas
+
+```{r att_eq}
+# DR-DDD ATT formula
+cat_att_equation("drddd")
+
+# CSDiD ATT for the p=1 subgroup
+cat_att_equation("csdid", subgroup_value = 1)
+```
+
+---
+
+## Covariate balance
+
+```{r balance, eval=FALSE}
+df$income <- rnorm(nrow(df))
+df$age    <- runif(nrow(df), 30, 70)
+
+bal <- cat_balance_table(spec, covariates = c("income", "age"))
+cat_balance_plot(bal)
+```
+
+---
+
+## Pretrend diagnostics
+
+```{r diag, eval=FALSE}
+df$outcome <- rnorm(nrow(df))
+spec_diag  <- cat_spec(df, id = "hospital_id", time = "year", g = "g", subgroup = "p")
+
+# DR-DDD pretrend
+result <- cat_diag(spec_diag, outcome = "outcome", method = "drddd")
+print(result$plot)
+
+# CSDID parallel-gaps
+result2 <- cat_diag(spec_diag, outcome = "outcome", method = "csdid")
+print(result2$plot)
+```
+
+---
+
+## Summary
+
+| Function | Purpose |
+|----------|---------|
+| `cat_spec()` | Build the CAT specification |
+| `cat_label()` | Assign cohort letters |
+| `cat_plot_tree()` | Auto-dispatch unified plot (recommended) |
+| `cat_plot_did()` | 2×2 DiD tree |
+| `cat_plot_csdid()` | CSDiD tree |
+| `cat_plot_ddd()` | DDD / DR-DDD tree |
+| `cat_counts()` | Count units per node |
+| `cat_balance_table()` | Covariate balance SMDs |
+| `cat_balance_plot()` | Love plot |
+| `cat_diag()` | Pretrend diagnostic |
+| `cat_att_equation()` | ATT formula text/LaTeX |
+| `cat_save_png()` | Save plot to PNG |
