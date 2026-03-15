@@ -1,68 +1,84 @@
 # catviz: Visualizing Causal Assignment Trees for DiD, CSDiD, and DDD
 
-[![R](https://img.shields.io/badge/R-%3E%3D4.0.0-blue)](https://www.r-project.org/)
+[![R](https://img.shields.io/badge/R-%3E%3D4.1.0-blue)](https://www.r-project.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![CRAN status](https://img.shields.io/badge/CRAN-submission%20pending-lightgrey)](https://CRAN.R-project.org/package=catviz)
 
-**catviz** is a professional R package for creating publication-quality **Causal Assignment Tree (CAT)** visualizations. These hierarchical diagrams transparently display the treatment structure in modern difference-in-differences designs, including:
+**catviz** is an R package for constructing, labeling, and visualizing **Causal Assignment Trees (CATs)** — hierarchical diagrams that make the identification strategy in modern difference-in-differences designs explicit and transparent. The package supports three design classes:
 
-- **2×2 Difference-in-Differences (DiD)**
-- **Callaway-Sant'Anna DiD (CSDiD)** with staggered adoption
-- **Difference-in-Difference-in-Differences (DDD)** with subgroup heterogeneity
+- **2×2 Difference-in-Differences (DiD)** — one treated group, one control group, one treatment time
+- **Callaway–Sant'Anna CSDiD** — staggered adoption across multiple treatment cohorts
+- **Doubly Robust Triple Difference (DR-DDD)** — staggered adoption with subgroup heterogeneity
 
-The CAT framework makes your identification strategy visually transparent, showing exactly which units serve as controls, how treatment timing varies across cohorts, and how counterfactual outcomes are constructed.
+CAT diagrams communicate who serves as the counterfactual, how cohort composition varies, and how the ATT is constructed — all before a single regression is run.
 
 ---
 
 ## Why Use catviz?
 
-In causal inference, **knowing who serves as the counterfactual is essential** for understanding what is being estimated. The CAT provides this insight at a glance.
+Credible causal inference requires knowing which units provide identification and why. The standard practice of reporting a regression table without visualizing treatment structure makes it difficult to evaluate internal validity, detect composition problems, or explain the design to non-technical audiences.
 
-### Key Benefits
+The CAT solves this. It displays the full assignment structure — cohorts, never-treated units, subgroups, pre/post splits, and sample sizes — in a single diagram that maps directly to the econometric identifying assumptions.
 
- **Transparency** – See exactly which units serve as comparison groups  
- **Verification** – Confirm treatment structure before estimation  
- **Communication** – Explain complex designs to non-technical audiences  
- **Publication-Ready** – Professional diagrams for papers and presentations  
- **Flexible** – Works with any number of cohorts and subgroups  
+**Key benefits:**
+
+- **Transparency** — shows exactly which units serve as comparison groups
+- **Verification** — exposes structural problems (empty cells, thin cohorts) before estimation
+- **Diagnostics** — built-in pretrend and covariate balance tools
+- **Communication** — suitable for papers, seminars, and referee responses
+- **Publication quality** — high-resolution output with a grayscale option for B&W journals
 
 ---
 
 ## Installation
 
+catviz is currently available from GitHub while awaiting CRAN approval:
+
 ```r
-# Install from GitHub
-install.packages("devtools")
-devtools::install_github("VictorKilanko/catviz")
+# Install from GitHub (recommended while CRAN approval is pending)
+# install.packages("remotes")
+remotes::install_github("VictorKilanko/catviz")
+```
+
+Once approved, it will also be installable via:
+
+```r
+install.packages("catviz")
 ```
 
 ---
 
 ## Quick Start
 
-### Basic Workflow
+The recommended entry point is `cat_plot_tree()`, which automatically detects your design and dispatches to the correct plot function.
 
 ```r
 library(catviz)
 
-# 1. Create CAT specification from your data
+# --- Step 1: Specify the CAT ---
 spec <- cat_spec(
-  data     = your_data,
-  id       = "unit_id",
-  time     = "year",
-  g        = "treatment_year",
-  group_id = "state"
+  data = your_panel,
+  id   = "unit_id",
+  time = "year",
+  g    = "first_treatment_year"   # use Inf for never-treated units
 )
 
-# 2. Add labels
+# --- Step 2: (Optional) Attach cohort labels ---
 spec <- cat_label(spec)
 
-# 3. View summary statistics
+# --- Step 3: Inspect node counts ---
 cat_counts(spec)
 
-# 4. Create visualization
-p <- cat_plot_csdid(spec, counts = TRUE, save_plot = "my_cat.png")
+# --- Step 4: Visualize (auto-detects design) ---
+p <- cat_plot_tree(spec, counts = TRUE)
 print(p)
+
+# --- Step 5: Save ---
+cat_save_png(p, "figure1_cat.png")
 ```
+
+`cat_plot_tree()` prints a message indicating the detected design (`CAT design detected: CSDiD`, `DDD`, or `2x2 DiD`) so you can verify the dispatch is correct.
 
 ---
 
@@ -70,10 +86,9 @@ print(p)
 
 ### 1. Standard 2×2 DiD
 
-**Use when:** You have one treatment time and one control group.
+Use when there is one treatment time and one control group.
 
 ```r
-# Example: Single policy adoption
 spec_did <- cat_spec(
   data = panel_data,
   id   = "city_id",
@@ -81,507 +96,400 @@ spec_did <- cat_spec(
   g    = "treatment_year"
 )
 
-p_did <- cat_plot_did(spec_did, counts = TRUE)
+p <- cat_plot_tree(spec_did)   # dispatches to cat_plot_did()
 ```
 
-**CAT Structure:**
+**Tree structure:**
 ```
 All Units
-  ├─ Treated (A)
-  │    ├─ Pre (C)
-  │    └─ Post (D)
-  └─ Control (B)
-       ├─ Pre (E)
-       └─ Post (F)
+  ├─ Treated
+  │    ├─ Pre-period
+  │    └─ Post-period
+  └─ Control (Never-Treated)
+       ├─ Pre-period
+       └─ Post-period
 ```
 
 ---
 
-### 2. CSDiD (Staggered Adoption)
+### 2. CSDiD — Staggered Adoption (Callaway–Sant'Anna)
 
-**Use when:** Different units adopt treatment at different times.
+Use when different units adopt treatment at different times.
 
 ```r
-# Example: Staggered policy rollout across cities
 spec_csdid <- cat_spec(
-  data     = panel_data,
-  id       = "city_id",
-  time     = "month",
-  g        = "adoption_date",
-  group_id = "city_id"
+  data = panel_data,
+  id   = "city_id",
+  time = "year",
+  g    = "adoption_year"        # Inf for never-treated
 )
 
-p_csdid <- cat_plot_csdid(spec_csdid, counts = TRUE)
+p <- cat_plot_tree(spec_csdid)  # dispatches to cat_plot_csdid()
 ```
 
-**CAT Structure:**
+**Tree structure:**
 ```
 All Units
-  ├─ Treated Cohorts
-  │    ├─ g = 2019 (A)
-  │    ├─ g = 2020 (B)
-  │    ├─ g = 2021 (C)
-  │    └─ ...
-  └─ Never-Treated (g=∞) (F)
+  ├─ Cohort g = 2019  [A]
+  ├─ Cohort g = 2020  [B]
+  ├─ Cohort g = 2021  [C]
+  └─ Never-Treated    [D]
 ```
-
-**Real-World Example:** Psychedelics deprioritization policies adopted by California cities at different times.
 
 ---
 
-### 3. DDD (Triple Difference with Subgroups)
+### 3. DR-DDD — Triple Difference with Subgroups
 
-**Use when:** Treatment effects may differ across subgroups within cohorts.
+Use when treatment effects differ across a binary subgroup within cohorts (e.g., hospital type, firm size, gender).
 
 ```r
-# Example: Policy affects non-profit differently than for-profit hospitals
 spec_ddd <- cat_spec(
   data     = panel_data,
   id       = "hospital_id",
   time     = "year",
   g        = "expansion_year",
-  subgroup = "nonprofit",      # Key addition for DDD
-  group_id = "state"
+  subgroup = "nonprofit"        # binary 0/1
 )
 
-p_ddd <- cat_plot_ddd(spec_ddd, counts = TRUE)
+p <- cat_plot_tree(spec_ddd)    # dispatches to cat_plot_ddd()
 ```
 
-**CAT Structure:**
+**Tree structure:**
 ```
 All Units
-  ├─ Treated Cohorts
-  │    ├─ g = 2014
-  │    │    ├─ Q = 1 (A)
-  │    │    └─ Q = 0 (B)
-  │    ├─ g = 2015
-  │    │    ├─ Q = 1 (C)
-  │    │    └─ Q = 0 (D)
-  │    └─ ...
-  └─ Never-Treated (g=∞)
-       ├─ Q = 1 (M)
-       └─ Q = 0 (N)
+  ├─ Cohort g = 2014
+  │    ├─ Subgroup Q = 1  [A]
+  │    └─ Subgroup Q = 0  [B]
+  ├─ Cohort g = 2015
+  │    ├─ Q = 1  [C]
+  │    └─ Q = 0  [D]
+  └─ Never-Treated
+       ├─ Q = 1  [M]
+       └─ Q = 0  [N]
 ```
-
-**Real-World Example:** Medicaid expansion affecting non-profit vs. for-profit hospitals.
 
 ---
 
-## Featured Examples
+## Real-World Examples
 
 ### Example 1: Psychedelics Deprioritization and Crime (CSDiD)
 
-A motivating example analyzing the effect of psychedelics deprioritization policies on crime rates in California cities.
-
-**Context:**
-- 5 cities adopted deprioritization between 2019-2023
-- 284 cities never adopted (control group)
-- Monthly panel data (2017-2023)
+Five California cities adopted psychedelics deprioritization policies between 2019 and 2023, against a background of 284 never-adopting cities.
 
 ```r
 library(catviz)
-library(dplyr)
 
-# Load data (simplified for illustration)
-psychedelics_data <- data.frame(
-  city_id = rep(1:289, each = 72),
-  month   = rep(seq(as.Date("2017-01-01"), by = "month", length.out = 72), 289),
-  treatment_date = rep(c(
-    rep(as.Date("2019-06-01"), 1),    # Oakland
-    rep(as.Date("2020-01-01"), 1),    # Santa Cruz
-    rep(as.Date("2021-10-01"), 1),    # Arcata
-    rep(as.Date("2022-09-01"), 1),    # San Francisco
-    rep(as.Date("2023-07-01"), 1),    # Berkeley
-    rep(Inf, 284)                     # Never-treated
-  ), each = 72)
+df <- data.frame(
+  city_id        = rep(1:6, each = 4),
+  year           = rep(2019:2022, 6),
+  treatment_year = c(rep(2020, 8), rep(2021, 8), rep(Inf, 8))
 )
 
-# Create CAT specification
-spec <- cat_spec(
-  data     = psychedelics_data,
-  id       = "city_id",
-  time     = "month",
-  g        = "treatment_date",
-  group_id = "city_id"
-)
-
-spec <- cat_label(spec)
-
-# Generate CAT visualization
-p <- cat_plot_csdid(spec, counts = TRUE, save_plot = "psychedelics_cat.png")
-print(p)
+spec <- cat_spec(df, id = "city_id", time = "year", g = "treatment_year")
+p    <- cat_plot_tree(spec, counts = TRUE)
 ```
 
-**Key Insight:** The CAT shows that Oakland (earliest adopter) can use all other cities as comparisons, while Berkeley (latest adopter) can only use the 284 never-treated cities.
+The CAT immediately reveals that the earliest cohort (Oakland, 2019) can use all subsequent adopters and all never-treated cities as comparisons, while the latest cohort (Berkeley, 2023) relies entirely on the never-treated pool.
 
 ---
 
-### Example 2: Medicaid Expansion and Hospital Outcomes (DDD)
+### Example 2: Medicaid Expansion and Hospital Outcomes (DR-DDD)
 
-A DDD analysis examining differential effects of Medicaid expansion on non-profit vs. for-profit hospitals.
-
-**Context:**
-- 8 expansion cohorts (2014-2025)
-- 3,495 hospitals across 50 states
-- Subgroups: Non-profit (Q=1) vs. For-profit (Q=0)
+Medicaid expansion rolled out across US states in 8 distinct cohorts. The DDD design estimates heterogeneous effects for non-profit (Q=1) vs. for-profit (Q=0) hospitals.
 
 ```r
 library(catviz)
 library(dplyr)
-library(tidyr)
 
-# Simulate Medicaid expansion structure
-set.seed(123)
-
-# State expansion years
-states <- data.frame(
-  state = state.abb,
-  expansion_year = sample(c(2014, 2015, 2016, 2019, 2020, 2021, 2023, 2025, Inf), 
-                         50, replace = TRUE)
-)
-
-# Hospitals in each state
-hospitals <- states %>%
-  slice(rep(1:n(), each = 70)) %>%
+# Simulated data with subgroup structure
+set.seed(42)
+df <- expand.grid(
+  hospital_id    = 1:200,
+  year           = 2012:2022
+) |>
   mutate(
-    hospital_id = paste0(state, "_H", 1:70),
-    nonprofit = rbinom(n(), 1, 0.6)  # 60% non-profit
+    expansion_year = rep(sample(c(2014, 2015, 2016, 2019, Inf), 200, replace = TRUE), each = 11),
+    nonprofit      = rep(rbinom(200, 1, 0.6), each = 11)
   )
 
-# Panel data (2012-2025)
-panel <- expand_grid(
-  hospital_id = hospitals$hospital_id,
-  year = 2012:2025
-) %>%
-  left_join(hospitals, by = "hospital_id")
-
-# Create DDD specification
-spec_ddd <- cat_spec(
-  data     = panel,
+spec_ddd <- cat_spec(df,
   id       = "hospital_id",
   time     = "year",
   g        = "expansion_year",
-  subgroup = "nonprofit",
-  group_id = "state"
+  subgroup = "nonprofit"
 )
 
-spec_ddd <- cat_label(spec_ddd)
-
-# Generate DDD tree
-p_ddd <- cat_plot_ddd(spec_ddd, counts = TRUE, save_plot = "medicaid_ddd_cat.png")
-print(p_ddd)
-
-# View summary statistics
-cat_counts(spec_ddd)
+p <- cat_plot_tree(spec_ddd, counts = TRUE)
 ```
 
-**Key Insight:** The CAT reveals that the 2014 cohort has 7 valid comparison cohorts (2015, 2016, 2019, 2020, 2021, 2023, 2025) plus the never-treated group, allowing for over-identified GMM estimation.
+---
+
+## Understanding the Output
+
+### Node colors
+
+| Color | Meaning |
+|-------|---------|
+| Dark fill | Treated units (post-treatment) |
+| Light fill | Control / never-treated units |
+| White | Internal branch nodes |
+
+Set `grayscale = TRUE` in `cat_plot_tree()` for black-and-white output suitable for print journals.
+
+### Node labels
+
+Each terminal node displays:
+- **Group identifier** — cohort year or subgroup value
+- **Letter label** — assigned chronologically (A, B, C, ...) for cross-reference with equations
+- **Sample size** — when `counts = TRUE`
+
+### Letter assignment convention
+
+- **CSDiD**: A = earliest cohort, ..., last letter = never-treated group
+- **DDD**: A, B = first cohort Q=1 and Q=0; C, D = second cohort; etc.
 
 ---
 
-## Understanding CAT Output
+## Diagnostics
 
-### Node Labels
+### Pretrend and parallel-trends tests
 
-Each node in the CAT is labeled with:
-- **Group identifier** (e.g., "g = 2019", "Q = 1")
-- **Letter label** (A, B, C, ...) for easy reference in equations
-- **Sample size** (n=X) when `counts = TRUE`
+```r
+# Event-time count table (no outcome required)
+cat_diag(spec, method = "event")
 
-### Colors
+# CSDiD parallel-trends diagnostic: gap(treated - never-treated) over pre-periods
+cat_diag(spec, outcome = "y", method = "csdid")
 
-- **Pink/Red** (#FADBD8): Treated units
-- **Blue** (#D6EAF8): Control/Never-treated units
-- **White**: Internal nodes (branches)
+# DR-DDD pretrend: subgroup means (Q=1 vs Q=0) over pre-periods
+cat_diag(spec_ddd, outcome = "y", method = "drddd")
+```
 
-### Letter Assignment
+All methods return a list with a `data` tibble and (for `"csdid"` and `"drddd"`) a `plot` element that is printed automatically.
 
-Letters are assigned **chronologically**:
-- **CSDiD**: A = earliest cohort, ..., last letter = never-treated
-- **DDD**: A,B = first cohort (Q=1, Q=0), C,D = second cohort, etc.
+### Covariate balance
 
----
+```r
+# Standardized mean differences by design group (Treated vs. Never-Treated)
+bal <- cat_balance_table(spec, covariates = c("age", "income", "population"),
+                         by = "design")
 
-## Variable Requirements
+# Love plot
+cat_balance_plot(bal)
 
-### Required Variables
+# By CAT node (finer decomposition)
+bal_node <- cat_balance_table(spec, covariates = c("age", "income"),
+                              by = "node")
+```
 
-| Variable | Type | Description | Example |
-|----------|------|-------------|---------|
-| `id` | Character/Numeric | Unique unit identifier | `"hospital_001"`, `12345` |
-| `time` | Date/Numeric | Time period | `2020`, `as.Date("2020-01-01")` |
-| `g` | Date/Numeric | First treatment time (use `Inf` for never-treated) | `2019`, `Inf` |
+### ATT formula reference
 
-### Optional Variables
+```r
+# Returns ATT formula in plain text and LaTeX for the paper
+cat_att_equation(design = "drddd")
+cat_att_equation(design = "csdid", subgroup_value = 1)
+```
 
-| Variable | Type | Description | When Required |
-|----------|------|-------------|---------------|
-| `subgroup` | Binary (0/1) | Subgroup indicator | **DDD only** |
-| `group_id` | Character/Numeric | Treatment assignment level | When treatment is clustered (e.g., states) |
+Each call returns a list with `text`, `tex`, `nodes`, and `note`, so the formula can be inserted directly into `knitr` or a LaTeX document.
 
 ---
 
 ## Function Reference
 
-### Core Functions
+### Specification
 
-#### `cat_spec()`
-Creates a CAT specification object from panel data.
+| Function | Description |
+|----------|-------------|
+| `cat_spec(data, id, time, g, subgroup, group_id)` | Build a `cat_spec` object from panel data |
+| `cat_label(spec)` | Attach letter labels and canonical node descriptors |
+
+### Visualization
+
+| Function | Description |
+|----------|-------------|
+| `cat_plot_tree(spec, counts, grayscale, save_plot, ...)` | **Recommended.** Auto-detects design; dispatches to the function below |
+| `cat_plot_did(spec, counts, save_plot, ...)` | 2×2 DiD tree |
+| `cat_plot_csdid(spec, counts, save_plot, ...)` | CSDiD tree (staggered adoption) |
+| `cat_plot_ddd(spec, counts, save_plot, ...)` | DR-DDD tree with subgroup split |
+| `cat_save_png(plot, path, width, height, dpi)` | Save a CAT plot to high-resolution PNG |
+
+### Summary statistics
+
+| Function | Description |
+|----------|-------------|
+| `cat_counts(spec)` | Count units or observations per CAT node |
+
+### Diagnostics
+
+| Function | Description |
+|----------|-------------|
+| `cat_diag(spec, outcome, method, ...)` | Unified diagnostic dispatcher (`"event"`, `"drddd"`, `"csdid"`) |
+| `cat_balance_table(spec, covariates, by, weight)` | Standardized mean differences across nodes or design groups |
+| `cat_balance_plot(balance_tbl)` | Love plot from a `cat_balance_table()` result |
+| `cat_att_equation(design, subgroup_value, include_never_treated)` | ATT formula in text and LaTeX |
+
+---
+
+## Integration with DiD Estimation Packages
+
+`catviz` is designed as a pre-estimation workflow tool. It pairs naturally with:
+
+### `did` (Callaway & Sant'Anna)
 
 ```r
-spec <- cat_spec(
-  data,           # Panel dataset (data.frame)
-  id,             # Unit identifier column name
-  time,           # Time variable column name
-  g,              # First treatment time column name
-  subgroup = NULL,# Subgroup column (DDD only)
-  group_id = NULL # Treatment assignment level
-)
+library(catviz)
+library(did)
+
+# 1. Inspect treatment structure
+spec <- cat_spec(data, id = "id", time = "year", g = "g")
+cat_plot_tree(spec)
+
+# 2. Estimate cohort-average ATTs
+out <- att_gt(yname = "y", tname = "year", idname = "id", gname = "g", data = data)
+aggte(out, type = "dynamic")
 ```
 
-#### `cat_label()`
-Adds letter labels to cohorts and subgroups.
+### `fixest` (Sun–Abraham)
 
 ```r
-spec <- cat_label(spec)
+library(catviz)
+library(fixest)
+
+spec <- cat_spec(data, id = "id", time = "year", g = "g")
+cat_plot_tree(spec)
+
+feols(y ~ sunab(g, year) | id + year, data = data)
 ```
 
-#### `cat_counts()`
-Displays summary statistics by cohort and subgroup.
+### `drdid` (Sant'Anna & Zhao doubly robust DiD)
 
 ```r
-cat_counts(spec)
-```
+library(catviz)
+library(drdid)
 
-### Visualization Functions
-
-#### `cat_plot_did()`
-Creates 2×2 DiD tree with Pre/Post splits.
-
-```r
-p <- cat_plot_did(
-  spec,
-  counts = TRUE,        # Include sample sizes
-  save_plot = NULL      # Optional: path to save PNG
-)
-```
-
-#### `cat_plot_csdid()`
-Creates CSDiD tree with multiple treatment cohorts.
-
-```r
-p <- cat_plot_csdid(
-  spec,
-  counts = TRUE,
-  save_plot = NULL
-)
-```
-
-#### `cat_plot_ddd()`
-Creates DDD tree with cohorts and subgroups.
-
-```r
-p <- cat_plot_ddd(
-  spec,
-  counts = TRUE,
-  save_plot = NULL
-)
+spec <- cat_spec(data, id = "id", time = "year", g = "g")
+cat_plot_tree(spec)
 ```
 
 ---
 
 ## Advanced Usage
 
-### Customizing Plots
-
-All plotting functions return `ggplot2` objects, which can be customized:
+### Grayscale output for print journals
 
 ```r
-library(ggplot2)
-
-p <- cat_plot_csdid(spec, counts = TRUE)
-
-# Customize
-p_custom <- p +
-  labs(title = "My Custom Title") +
-  theme(plot.title = element_text(size = 20, face = "bold"))
-
-# Save with custom dimensions
-ggsave("my_cat_custom.png", p_custom, width = 16, height = 10, dpi = 400)
+p <- cat_plot_tree(spec, counts = TRUE, grayscale = TRUE)
+cat_save_png(p, "figure1_bw.png")
 ```
 
-### Hiding Sample Sizes
-
-For theoretical/schematic diagrams:
+### Calling underlying plot functions directly
 
 ```r
-p_clean <- cat_plot_csdid(spec, counts = FALSE)
+# With additional ggplot2 customization
+p <- cat_plot_csdid(spec, counts = TRUE) +
+  ggplot2::labs(title = "Treatment Assignment Structure") +
+  ggplot2::theme(plot.title = ggplot2::element_text(size = 14, face = "bold"))
 ```
 
-### Working with Large Datasets
-
-For datasets with many cohorts (>10), the DDD plot automatically adjusts width:
+### Accessing diagnostic data
 
 ```r
-# Width scales from 14" to 30+" based on number of cohorts
-p_wide <- cat_plot_ddd(spec, save_plot = "wide_cat.png")
-# Automatically saves with appropriate width
+result <- cat_diag(spec, outcome = "y", method = "csdid", pre_window = -6:-1)
+head(result$data)   # the underlying tibble
 ```
 
 ---
 
-## Integration with DiD Packages
+## Variable Requirements
 
-`catviz` complements existing DiD estimation packages:
+### Required
 
-### With `did` package (Callaway & Sant'Anna)
+| Argument | Type | Description |
+|----------|------|-------------|
+| `id` | Character or numeric | Unique unit identifier (panel dimension) |
+| `time` | Numeric or Date | Time period |
+| `g` | Numeric or Date | First treatment period; use `Inf` or `0` for never-treated |
 
-```r
-library(catviz)
-library(did)
+### Optional
 
-# 1. Visualize with catviz
-spec <- cat_spec(data, "id", "year", "g")
-cat_plot_csdid(spec)
-
-# 2. Estimate with did package
-result <- att_gt(
-  yname = "outcome",
-  tname = "year",
-  idname = "id",
-  gname = "g",
-  data = data
-)
-
-# 3. Aggregate and plot
-agg_result <- aggte(result, type = "dynamic")
-ggdid(agg_result)
-```
-
-### With `fixest` (two-way fixed effects)
-
-```r
-library(catviz)
-library(fixest)
-
-# 1. Visualize treatment structure
-spec <- cat_spec(data, "id", "year", "g")
-cat_plot_csdid(spec)
-
-# 2. Estimate with Sun-Abraham interactions
-feols(outcome ~ sunab(g, year) | id + year, data = data)
-```
+| Argument | Type | When needed |
+|----------|------|-------------|
+| `subgroup` | Binary integer (0/1) | DR-DDD designs only |
+| `group_id` | Character or numeric | When treatment is assigned at a higher level (e.g., state) |
 
 ---
 
-## Tips and Best Practices
+## Tips
 
-### 1. **Always visualize before estimating**
-Create your CAT first to verify:
-- Treatment timing is correct
-- Cohorts are properly defined
-- Sample sizes are reasonable
-- Comparison groups exist
+1. **Run `cat_plot_tree()` before any estimation.** The diagram will surface structural problems — empty cohorts, small control pools, incorrect `Inf` coding — that would otherwise silently bias your estimates.
 
-### 2. **Use meaningful variable names**
-```r
-# Good
-cat_spec(data, id = "hospital_id", time = "year", g = "expansion_year")
+2. **Use `cat_counts()` to audit sample sizes.** Cohorts with very few observations should be collapsed or excluded before computing ATT(g,t) estimates.
 
-# Avoid
-cat_spec(data, id = "x1", time = "x2", g = "x3")
-```
+3. **Save at high resolution.** The default DPI for `cat_save_png()` is 400. For journal submission, verify the minimum DPI requirement (typically 300–600).
 
-### 3. **Check for empty cells**
-```r
-cat_counts(spec)
-# Look for cohorts with n=0 or very small samples
-```
-
-### 4. **Save high-resolution plots**
-```r
-# For publications
-cat_plot_ddd(spec, save_plot = "figure1.png")  # Default: 400 DPI
-
-# For presentations
-ggsave("slide.png", p, width = 12, height = 8, dpi = 150)
-```
-
-### 5. **Document your tree in papers**
-Include your CAT in the paper with a caption like:
-> "Figure 1 shows the Causal Assignment Tree for our staggered DiD design. Letters A-E denote treatment cohorts in chronological order, while F represents the never-treated comparison group."
+4. **Cite the CAT in your paper.** A natural caption is:
+   > "Figure 1 presents the Causal Assignment Tree for our staggered DiD design. Letters A–D denote treatment cohorts in chronological order; letter E denotes the never-treated comparison group."
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+**"No treated cohorts detected"**
+Check that the `g` column contains finite values for treated units and `Inf` (or `0`) for never-treated units. Do not leave `NA`.
 
-**Q: My tree shows cut-off labels**  
-A: Update to the latest version of `catviz`. We've fixed all cut-off issues in v1.1+.
+**Tree labels are cut off**
+The ggplot2 viewport clips labels at the panel boundary. Call `cat_save_png()` or `ggsave()` with a larger `width` argument.
 
-**Q: I get "No treated cohorts detected"**  
-A: Check that your `g` column has finite values for treated units and `Inf` for never-treated units.
+**"spec must be a cat_spec object"**
+Pass the output of `cat_spec()` directly. Do not pass a raw data frame.
 
-**Q: The tree is too wide/narrow**  
-A: The plot width automatically adjusts. For manual control:
+**Plot is too narrow for many cohorts**
+The DDD plot auto-scales width, but for large designs (10+ cohorts) you may need to increase it manually:
 ```r
-p <- cat_plot_csdid(spec)
-ggsave("my_cat.png", p, width = 20, height = 10)  # Adjust width
+cat_save_png(p, "wide_cat.png", width = 28, height = 12)
 ```
-
-**Q: How do I handle continuous treatment?**  
-A: `catviz` is designed for discrete treatment timing. For continuous treatment, discretize into cohorts first.
 
 ---
 
 ## Citation
 
-If you use `catviz` in your research, please cite:
+If you use catviz in published research, please cite:
 
 ```bibtex
 @misc{kilanko2025catviz,
-  author = {Kilanko, Victor},
-  title = {catviz: Visualizing Causal Assignment Trees for DiD, CSDiD, and DDD},
-  year = {2025},
+  author    = {Kilanko, Victor},
+  title     = {catviz: Visualizing Causal Assignment Trees for DiD, CSDiD, and DDD},
+  year      = {2025},
   publisher = {GitHub},
-  url = {https://github.com/VictorKilanko/catviz}
+  url       = {https://github.com/VictorKilanko/catviz}
 }
 ```
 
 ---
 
+## References
+
+- Callaway, B., & Sant'Anna, P. H. C. (2021). Difference-in-differences with multiple time periods. *Journal of Econometrics*, 225(2), 200–230.
+- Goodman-Bacon, A. (2021). Difference-in-differences with variation in treatment timing. *Journal of Econometrics*, 225(2), 254–277.
+- Ortiz-Villavicencio, L., & Sant'Anna, P. H. C. (2025). Difference-in-difference-in-differences. Working paper.
+- Sant'Anna, P. H. C., & Zhao, J. (2020). Doubly robust difference-in-differences estimators. *Journal of Econometrics*, 219(1), 101–122.
+- Kilanko, V. (2025). Visualizing counterfactuals: A causal assignment tree approach for DiD, CSDiD, and DDD. Working paper.
+
+---
+
 ## Contributing
 
-Contributions are welcome! Please feel free to:
-- Report bugs via [GitHub Issues](https://github.com/VictorKilanko/catviz/issues)
-- Suggest features
-- Submit pull requests
+Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/VictorKilanko/catviz/issues). Pull requests should include a minimal reproducible example and updated documentation.
 
 ---
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) file for details.
+MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-## References
+## Contact
 
-- Callaway, B., & Sant'Anna, P. H. (2021). Difference-in-differences with multiple time periods. *Journal of Econometrics*, 225(2), 200-230.
-- Goodman-Bacon, A. (2021). Difference-in-differences with variation in treatment timing. *Journal of Econometrics*, 225(2), 254-277.
-- Kilanko, V. (2025). Visualizing Counterfactuals: A Causal Assignment Tree Approach for DiD, CSDID, and DDD. Working Paper.
-- Ortiz-Villavicencio, L., & Sant'Anna, P. H. C. (2025). Difference-in-Difference-in-Differences. Working Paper.
-
----
-
-## Support
-
-For questions or support:
-- 📧 Email: victorkilanko@gmail.com
-- 🐛 Issues: [GitHub Issues](https://github.com/VictorKilanko/catviz/issues)
-- 📖 Documentation: [Package Website](https://victorkilanko.github.io/catviz)
-
----
-
-**Made with ❤️ for transparent causal inference**
+Victor Kilanko — victorkilanko@gmail.com
+Issues: [github.com/VictorKilanko/catviz/issues](https://github.com/VictorKilanko/catviz/issues)
