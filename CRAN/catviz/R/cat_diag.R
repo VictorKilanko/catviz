@@ -163,13 +163,17 @@ cat_pt_csdid <- function(spec, y, pre_window = -8:-1) {
   dd <- dd[order(dd$e), ]
 
   p <- ggplot2::ggplot(dd, ggplot2::aes(e, gap)) +
-    ggplot2::geom_line(linewidth = 0.8, color = "#4B6EAF") +
-    ggplot2::geom_point(size = 2, color = "#4B6EAF") +
     ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "grey60") +
+    ggplot2::geom_line(linewidth = 0.8, color = "#4B6EAF") +
+    ggplot2::geom_point(size = 2.5, color = "#4B6EAF") +
+    ggplot2::scale_x_continuous(breaks = pre_window) +
     ggplot2::theme_minimal(base_size = 13) +
+    ggplot2::theme(
+      plot.background = ggplot2::element_rect(fill = "white", colour = NA)
+    ) +
     ggplot2::labs(
-      x     = "Event time (pre-treatment)",
-      y     = "Gap (treated - never-treated)",
+      x     = "Event time (years relative to treatment)",
+      y     = "Gap: mean(treated) - mean(never-treated)",
       title = "CSDiD Parallel-Trends Diagnostic"
     )
 

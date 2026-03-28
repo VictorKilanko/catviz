@@ -363,8 +363,9 @@ cat_plot_ddd <- function(spec,
       axis.ticks      = ggplot2::element_blank(),
       plot.title      = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
       plot.subtitle   = ggplot2::element_text(hjust = 0.5, size = 10, colour = "grey40"),
-      legend.position = "none",
-      plot.margin     = grid::unit(c(1, 1, 1, 1), "cm")
+      legend.position  = "none",
+      plot.margin      = grid::unit(c(1, 1, 1, 1), "cm"),
+      plot.background  = ggplot2::element_rect(fill = "white", colour = NA)
     )
 
   if (!is.null(save_plot)) {
@@ -649,14 +650,16 @@ cat_plot_csdid <- function(spec,
       axis.ticks      = ggplot2::element_blank(),
       plot.title      = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
       plot.subtitle   = ggplot2::element_text(hjust = 0.5, size = 10, colour = "grey40"),
-      legend.position = "none",
-      plot.margin     = grid::unit(c(1, 1, 1, 1), "cm")
+      legend.position  = "none",
+      plot.margin      = grid::unit(c(1, 1, 1, 1), "cm"),
+      plot.background  = ggplot2::element_rect(fill = "white", colour = NA)
     )
 
   if (!is.null(save_plot)) {
     # Calculate appropriate width
     plot_width <- max(12, n_leaves * 2)
-    ggplot2::ggsave(save_plot, p, width = plot_width, height = 8, dpi = 400)
+    ggplot2::ggsave(save_plot, p, width = plot_width, height = 8, dpi = 400,
+                    bg = "white")
     message("CSDiD plot saved to: ", save_plot)
   }
 
@@ -899,12 +902,14 @@ cat_plot_did <- function(spec,
       axis.ticks      = ggplot2::element_blank(),
       plot.title      = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
       plot.subtitle   = ggplot2::element_text(hjust = 0.5, size = 10, colour = "grey40"),
-      legend.position = "none",
-      plot.margin     = grid::unit(c(1, 1, 1, 1), "cm")
+      legend.position  = "none",
+      plot.margin      = grid::unit(c(1, 1, 1, 1), "cm"),
+      plot.background  = ggplot2::element_rect(fill = "white", colour = NA)
     )
 
   if (!is.null(save_plot)) {
-    ggplot2::ggsave(save_plot, p, width = 12, height = 8, dpi = 400)
+    ggplot2::ggsave(save_plot, p, width = 12, height = 8, dpi = 400,
+                    bg = "white")
     message("DiD plot saved to: ", save_plot)
   }
 
