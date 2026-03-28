@@ -264,17 +264,34 @@ Each terminal node displays:
 ### Pretrend and parallel-trends tests
 
 ```r
-# Event-time count table (no outcome required)
+# 1. Event-time count table — how many treated vs control obs at each event time
 cat_diag(spec, method = "event")
 
-# CSDiD parallel-trends diagnostic: gap(treated - never-treated) over pre-periods
-cat_diag(spec, outcome = "y", method = "csdid")
+# 2. CSDiD parallel-trends diagnostic
+# Plots gap = mean(treated) - mean(never-treated) across pre-treatment event times.
+# A flat gap near zero supports the parallel trends assumption.
+# pre_window is in EVENT TIME (relative to each unit's own treatment year g),
+# not calendar years. e.g. pre_window = -3:-1 means 3, 2, 1 years before treatment.
+# IMPORTANT: use a continuous outcome that exists and varies BEFORE treatment.
+# Do not use a binary treatment indicator or an outcome that is zero pre-treatment.
+cat_diag(spec, outcome = "my_outcome", method = "csdid", pre_window = -3:-1)
 
-# DR-DDD pretrend: subgroup means (Q=1 vs Q=0) over pre-periods
-cat_diag(spec_ddd, outcome = "y", method = "drddd")
+# 3. DR-DDD pretrend: subgroup means (Q=1 vs Q=0) over pre-periods
+cat_diag(spec_ddd, outcome = "my_outcome", method = "drddd", pre_window = -3:-1)
 ```
 
-All methods return a list with a `data` tibble and (for `"csdid"` and `"drddd"`) a `plot` element that is printed automatically.
+All methods return a list with:
+- `$data` — tibble of the underlying numbers
+- `$plot` — ggplot object (for `"csdid"` and `"drddd"`)
+
+**How to interpret the CSDiD pre-trends plot:**
+- The y-axis shows the gap between treated and never-treated mean outcomes at each pre-period
+- A gap that is **flat and near zero** across pre-periods supports parallel trends
+- A gap that is **growing or shrinking** over pre-periods is a red flag
+- A stable non-zero level difference is acceptable — parallel trends requires parallel *slopes*, not identical levels
+
+**Choosing the right outcome variable:**
+Use a continuous outcome that has real variation before any unit is treated (e.g., log incarceration rate, log wages, log revenue). Do not use a variable that is mechanically zero before treatment (e.g., a count of treated units, or a post-treatment policy measure).
 
 ### Covariate balance
 
