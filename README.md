@@ -261,37 +261,29 @@ Each terminal node displays:
 
 ## Diagnostics
 
-### Pretrend and parallel-trends tests
-
 ```r
-# 1. Event-time count table — how many treated vs control obs at each event time
+# 1. Event-time sample size table
+# Returns a table of treated and pre-treatment observation counts at each
+# event time (e = year - g). Use this to check you have enough observations
+# in each period before running your main analysis.
 cat_diag(spec, method = "event")
 
-# 2. CSDiD parallel-trends diagnostic
-# Plots gap = mean(treated) - mean(never-treated) across pre-treatment event times.
-# A flat gap near zero supports the parallel trends assumption.
-# pre_window is in EVENT TIME (relative to each unit's own treatment year g),
-# not calendar years. e.g. pre_window = -3:-1 means 3, 2, 1 years before treatment.
-# IMPORTANT: use a continuous outcome that exists and varies BEFORE treatment.
-# Do not use a binary treatment indicator or an outcome that is zero pre-treatment.
+# 2. CSDiD parallel-trends check (requires a continuous outcome)
+# Plots the gap mean(treated) - mean(never-treated) across pre-treatment
+# event times. A flat gap supports the parallel trends assumption.
+# pre_window is in event time relative to each unit's own treatment year g
+# (e.g. -3:-1 = 3, 2, 1 years before treatment — not calendar years).
 cat_diag(spec, outcome = "my_outcome", method = "csdid", pre_window = -3:-1)
 
-# 3. DR-DDD pretrend: subgroup means (Q=1 vs Q=0) over pre-periods
+# 3. DR-DDD parallel-trends check
+# Plots mean outcomes for subgroup Q=1 vs Q=0 across pre-treatment periods.
+# Lines should be parallel before treatment.
 cat_diag(spec_ddd, outcome = "my_outcome", method = "drddd", pre_window = -3:-1)
 ```
 
-All methods return a list with:
-- `$data` — tibble of the underlying numbers
-- `$plot` — ggplot object (for `"csdid"` and `"drddd"`)
+All three return `$data` (the underlying numbers) and — for `"csdid"` and `"drddd"` — `$plot` (a ggplot printed automatically).
 
-**How to interpret the CSDiD pre-trends plot:**
-- The y-axis shows the gap between treated and never-treated mean outcomes at each pre-period
-- A gap that is **flat and near zero** across pre-periods supports parallel trends
-- A gap that is **growing or shrinking** over pre-periods is a red flag
-- A stable non-zero level difference is acceptable — parallel trends requires parallel *slopes*, not identical levels
-
-**Choosing the right outcome variable:**
-Use a continuous outcome that has real variation before any unit is treated (e.g., log incarceration rate, log wages, log revenue). Do not use a variable that is mechanically zero before treatment (e.g., a count of treated units, or a post-treatment policy measure).
+**Important:** use a continuous outcome that varies before treatment (e.g. log incarceration rate, log wages). Do not use an outcome that is mechanically zero in the pre-period.
 
 ### Covariate balance
 
