@@ -113,6 +113,8 @@ All Units
        └─ Post-period
 ```
 
+![DiD CAT example](figures/did.png)
+
 ---
 
 ### 2. CSDiD — Staggered Adoption (Callaway–Sant'Anna)
@@ -138,6 +140,8 @@ All Units
   ├─ Cohort g = 2021  [C]
   └─ Never-Treated    [D]
 ```
+
+![CSDiD CAT example](figures/csdid.png)
 
 ---
 
@@ -170,6 +174,8 @@ All Units
        ├─ Q = 1  [M]
        └─ Q = 0  [N]
 ```
+
+![DR-DDD CAT example](figures/ddd.png)
 
 ---
 
