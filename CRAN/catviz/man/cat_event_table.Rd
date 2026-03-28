@@ -19,3 +19,12 @@ Summarizes the number of treated and control observations by event time
 \code{e = t - g}. Works directly with any \code{cat_spec} object; does not require
 any additional labeling.
 }
+\examples{
+df <- data.frame(
+  id   = rep(1:10, each = 6),
+  year = rep(2015:2020, 10),
+  g    = c(rep(2018, 30), rep(Inf, 30))
+)
+spec <- cat_spec(df, id = "id", time = "year", g = "g")
+cat_event_table(spec, event_window = -3:2)
+}

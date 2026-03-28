@@ -23,3 +23,7 @@ All Units
 |-- Pre (E)
 +-- Post (F)
 }
+\examples{
+tree <- cat_design_did()
+tree$root
+}

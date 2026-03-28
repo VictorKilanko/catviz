@@ -10,6 +10,15 @@
 #' @param save_plot Optional file path for saving the plot (PNG, PDF, etc.).
 #'
 #' @return A ggplot object representing the DDD Causal Assignment Tree.
+#' @examples
+#' df <- data.frame(
+#'   id   = rep(1:6, each = 4),
+#'   year = rep(2017:2020, 6),
+#'   g    = c(rep(2018, 8), rep(2019, 8), rep(Inf, 8)),
+#'   p    = rep(c(0L, 1L), 12)
+#' )
+#' spec <- cat_spec(df, id = "id", time = "year", g = "g", subgroup = "p")
+#' cat_plot_ddd(spec)
 #' @export
 cat_plot_ddd <- function(spec,
                          counts    = TRUE,
@@ -399,6 +408,14 @@ cat_plot_ddd <- function(spec,
 #' @param save_plot Optional file path for plot (PNG, PDF, etc.)
 #'
 #' @return A ggplot object representing the CSDID Causal Assignment Tree.
+#' @examples
+#' df <- data.frame(
+#'   id   = rep(1:6, each = 4),
+#'   year = rep(2017:2020, 6),
+#'   g    = c(rep(2018, 8), rep(2019, 8), rep(Inf, 8))
+#' )
+#' spec <- cat_spec(df, id = "id", time = "year", g = "g")
+#' cat_plot_csdid(spec)
 #' @export
 cat_plot_csdid <- function(spec,
                            counts    = TRUE,
@@ -669,6 +686,14 @@ cat_plot_csdid <- function(spec,
 #' @param save_plot Optional path to save.
 #'
 #' @return A ggplot object.
+#' @examples
+#' df <- data.frame(
+#'   id   = rep(1:4, each = 2),
+#'   year = rep(2019:2020, 4),
+#'   g    = c(rep(2020, 4), rep(Inf, 4))
+#' )
+#' spec <- cat_spec(df, id = "id", time = "year", g = "g")
+#' cat_plot_did(spec)
 #' @export
 cat_plot_did <- function(spec,
                          counts    = TRUE,

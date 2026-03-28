@@ -21,3 +21,15 @@ Plots mean outcomes for the treated subgroup (subgroup = 1) vs. the control
 subgroup (subgroup = 0) across pre-treatment event-time periods. Requires a
 \code{subgroup} variable in the \code{cat_spec}.
 }
+\examples{
+set.seed(42)
+df <- data.frame(
+  id      = rep(1:10, each = 6),
+  year    = rep(2015:2020, 10),
+  g       = c(rep(2018, 30), rep(Inf, 30)),
+  p       = rep(c(0L, 1L), 30),
+  outcome = rnorm(60)
+)
+spec <- cat_spec(df, id = "id", time = "year", g = "g", subgroup = "p")
+result <- cat_pt_drddd(spec, y = "outcome", pre_window = -3:-1)
+}

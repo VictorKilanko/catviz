@@ -48,7 +48,6 @@ standardised columns (\code{.id}, \code{.time}, \code{.g}, \code{.subgroup}, \co
 downstream functions know where to look.
 }
 \examples{
-# Minimal CSDID example
 df <- data.frame(
   id   = rep(1:4, each = 3),
   year = rep(2018:2020, 4),
@@ -56,7 +55,6 @@ df <- data.frame(
 )
 spec <- cat_spec(df, id = "id", time = "year", g = "g")
 
-# DR-DDD example with subgroup
 df$p <- rep(c(0, 1), 6)
 spec_ddd <- cat_spec(df, id = "id", time = "year", g = "g", subgroup = "p")
 }

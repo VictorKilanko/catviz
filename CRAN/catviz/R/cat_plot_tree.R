@@ -27,7 +27,6 @@
 #' @return A `ggplot` object.
 #' @export
 #' @examples
-#' # --- CSDID example ---
 #' df <- data.frame(
 #'   id   = rep(1:6, each = 4),
 #'   year = rep(2017:2020, 6),
@@ -36,12 +35,10 @@
 #' spec <- cat_spec(df, id = "id", time = "year", g = "g")
 #' cat_plot_tree(spec)
 #'
-#' # --- DDD example ---
 #' df$p <- rep(c(0L, 1L), 12)
 #' spec_ddd <- cat_spec(df, id = "id", time = "year", g = "g", subgroup = "p")
 #' cat_plot_tree(spec_ddd)
 #'
-#' # --- Grayscale (for B&W publications) ---
 #' cat_plot_tree(spec, grayscale = TRUE)
 cat_plot_tree <- function(spec,
                           counts    = TRUE,

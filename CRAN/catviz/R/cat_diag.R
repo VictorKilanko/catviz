@@ -11,6 +11,14 @@
 #' @param spec A `cat_spec` object (from [cat_spec()])
 #' @param event_window Integer vector of event times to include (default `-10:10`)
 #' @return A tibble with columns `e`, `n_treated`, `n_control`
+#' @examples
+#' df <- data.frame(
+#'   id   = rep(1:10, each = 6),
+#'   year = rep(2015:2020, 10),
+#'   g    = c(rep(2018, 30), rep(Inf, 30))
+#' )
+#' spec <- cat_spec(df, id = "id", time = "year", g = "g")
+#' cat_event_table(spec, event_window = -3:2)
 #' @export
 cat_event_table <- function(spec, event_window = -10:10) {
   d <- spec$data
@@ -42,6 +50,17 @@ cat_event_table <- function(spec, event_window = -10:10) {
 #' @param y Name of the outcome variable
 #' @param pre_window Integer vector of pre-periods (default `-8:-1`)
 #' @return A list with elements `data` (tibble) and `plot` (ggplot)
+#' @examples
+#' set.seed(42)
+#' df <- data.frame(
+#'   id      = rep(1:10, each = 6),
+#'   year    = rep(2015:2020, 10),
+#'   g       = c(rep(2018, 30), rep(Inf, 30)),
+#'   p       = rep(c(0L, 1L), 30),
+#'   outcome = rnorm(60)
+#' )
+#' spec <- cat_spec(df, id = "id", time = "year", g = "g", subgroup = "p")
+#' result <- cat_pt_drddd(spec, y = "outcome", pre_window = -3:-1)
 #' @export
 cat_pt_drddd <- function(spec, y, pre_window = -8:-1) {
   d <- spec$data
@@ -92,6 +111,16 @@ cat_pt_drddd <- function(spec, y, pre_window = -8:-1) {
 #' @param y Outcome variable name
 #' @param pre_window Integer vector of pre-periods (default `-8:-1`)
 #' @return A list with `data` (tibble) and `plot` (ggplot)
+#' @examples
+#' set.seed(42)
+#' df <- data.frame(
+#'   id      = rep(1:10, each = 6),
+#'   year    = rep(2015:2020, 10),
+#'   g       = c(rep(2018, 30), rep(Inf, 30)),
+#'   outcome = rnorm(60)
+#' )
+#' spec <- cat_spec(df, id = "id", time = "year", g = "g")
+#' result <- cat_pt_csdid(spec, y = "outcome", pre_window = -3:-1)
 #' @export
 cat_pt_csdid <- function(spec, y, pre_window = -8:-1) {
   d <- spec$data

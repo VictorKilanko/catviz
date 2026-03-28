@@ -23,6 +23,9 @@
 #'           +-- Post (F)
 #'
 #' @return A nested list representing the tree structure
+#' @examples
+#' tree <- cat_design_did()
+#' tree$root
 #' @export
 cat_design_did <- function() {
   list(
@@ -63,6 +66,9 @@ cat_design_did <- function() {
 #'
 #' @param cohort_labels Character vector of cohort labels (e.g., "g = 2015 (A)")
 #' @return A nested list representing the tree structure
+#' @examples
+#' tree <- cat_design_csdid(c("g = 2018 (A)", "g = 2019 (B)"))
+#' tree$root
 #' @export
 cat_design_csdid <- function(cohort_labels) {
   cohort_branches <- lapply(cohort_labels, function(lbl) {
@@ -110,6 +116,9 @@ cat_design_csdid <- function(cohort_labels) {
 #'
 #' @param cohort_labels Character vector of cohort labels (e.g., "g = 2015")
 #' @return A nested list representing the tree structure
+#' @examples
+#' tree <- cat_design_ddd(c("g = 2018", "g = 2019"))
+#' tree$root
 #' @export
 cat_design_ddd <- function(cohort_labels) {
   cohort_branches <- lapply(cohort_labels, function(lbl) {
@@ -153,7 +162,6 @@ cat_design_ddd <- function(cohort_labels) {
 #' @export
 #' @examples
 #' generate_cohort_labels(c(2015, 2016, 2019))
-#' # Returns: "g = 2015 (A)", "g = 2016 (B)", "g = 2019 (C)"
 generate_cohort_labels <- function(g_values, start_letter = "A") {
   g_sorted <- sort(g_values)
   n_cohorts <- length(g_sorted)

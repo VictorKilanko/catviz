@@ -29,3 +29,15 @@ Invisibly returns the file path
 \description{
 Save a CAT ggplot as a high-quality PNG
 }
+\examples{
+\dontrun{
+  df <- data.frame(
+    id   = rep(1:4, each = 3),
+    year = rep(2018:2020, 4),
+    g    = c(rep(2019, 6), rep(Inf, 6))
+  )
+  spec <- cat_spec(df, id = "id", time = "year", g = "g")
+  p <- cat_plot_tree(spec)
+  cat_save_png(p, filename = tempfile(fileext = ".png"))
+}
+}

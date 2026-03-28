@@ -26,3 +26,7 @@ All Units
 |-- g = g3 (C)
 +-- ...
 }
+\examples{
+tree <- cat_design_csdid(c("g = 2018 (A)", "g = 2019 (B)"))
+tree$root
+}

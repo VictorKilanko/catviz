@@ -20,3 +20,13 @@ A ggplot object representing the DDD Causal Assignment Tree.
 This version uses optimized spacing to prevent node overlap and create
 a publication-quality visualization.
 }
+\examples{
+df <- data.frame(
+  id   = rep(1:6, each = 4),
+  year = rep(2017:2020, 6),
+  g    = c(rep(2018, 8), rep(2019, 8), rep(Inf, 8)),
+  p    = rep(c(0L, 1L), 12)
+)
+spec <- cat_spec(df, id = "id", time = "year", g = "g", subgroup = "p")
+cat_plot_ddd(spec)
+}

@@ -21,3 +21,14 @@ Checks whether treated cohorts and the never-treated group have parallel
 pre-treatment trends. Plots the gap \code{mean(treated) - mean(never-treated)}
 across pre-treatment event-time periods.
 }
+\examples{
+set.seed(42)
+df <- data.frame(
+  id      = rep(1:10, each = 6),
+  year    = rep(2015:2020, 10),
+  g       = c(rep(2018, 30), rep(Inf, 30)),
+  outcome = rnorm(60)
+)
+spec <- cat_spec(df, id = "id", time = "year", g = "g")
+result <- cat_pt_csdid(spec, y = "outcome", pre_window = -3:-1)
+}

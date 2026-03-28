@@ -20,5 +20,4 @@ where letters are assigned chronologically.
 }
 \examples{
 generate_cohort_labels(c(2015, 2016, 2019))
-# Returns: "g = 2015 (A)", "g = 2016 (B)", "g = 2019 (C)"
 }

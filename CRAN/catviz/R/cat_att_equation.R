@@ -1,8 +1,25 @@
 #' Show ATT contrast implied by CAT nodes and design
-#' Returns LaTeX and plain-text versions that match the diagram.
-#' @param design 'drddd' or 'csdid'
-#' @param subgroup_value 0/1 for csdid
-#' @param include_never_treated logical for drddd note
+#'
+#' Returns LaTeX and plain-text versions of the ATT equation that match the
+#' Causal Assignment Tree diagram.
+#'
+#' @param design Character; either \code{"drddd"} or \code{"csdid"}.
+#' @param subgroup_value Integer; 0 or 1 selecting the subgroup for CSDiD contrast.
+#' @param include_never_treated Logical; if \code{TRUE} (default), a note about
+#'   never-treated controls is included in the output.
+#' @return A named list with four elements:
+#' \itemize{
+#'   \item \code{text} - plain-text representation of the ATT contrast equation.
+#'   \item \code{tex} - LaTeX math string of the ATT contrast equation.
+#'   \item \code{nodes} - character vector naming the CAT nodes involved in the contrast.
+#'   \item \code{note} - plain-text note about the control group composition.
+#' }
+#' @examples
+#' eq <- cat_att_equation(design = "csdid")
+#' cat(eq$text)
+#'
+#' eq2 <- cat_att_equation(design = "drddd")
+#' cat(eq2$text)
 #' @export
 cat_att_equation <- function(design = c("drddd","csdid"),
                              subgroup_value = 1,

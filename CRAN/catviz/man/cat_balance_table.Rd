@@ -7,14 +7,35 @@
 cat_balance_table(spec, covariates, by = c("node", "design"), weight = NULL)
 }
 \arguments{
-\item{spec}{cat_spec (labeled for by='design')}
+\item{spec}{A \code{cat_spec} object. Must be labeled (via \code{cat_label()})
+when \code{by = "design"}.}
 
-\item{covariates}{character vector}
+\item{covariates}{Character vector of covariate names to assess.}
 
-\item{by}{'node' or 'design'. 'design' compares Treated vs Control if labeled.}
+\item{by}{Character; \code{"node"} (default) computes SMDs across CAT nodes;
+\code{"design"} compares Treated vs Never-Treated units.}
 
-\item{weight}{optional weight column}
+\item{weight}{Optional name of a weight column in \code{spec$data}.}
+}
+\value{
+A tibble with one row per covariate-group combination and four columns:
+\itemize{
+\item \code{covariate} - name of the covariate.
+\item \code{group} - CAT node label or design group ("Treated" or "Never-Treated").
+\item \code{mean} - weighted mean of the covariate within the group.
+\item \code{smd} - standardized mean difference relative to the first (reference) group.
+}
 }
 \description{
 Standardized mean differences across CAT nodes or design groups
+}
+\examples{
+df <- data.frame(
+  id   = rep(1:4, each = 3),
+  year = rep(2018:2020, 4),
+  g    = c(rep(2019, 6), rep(Inf, 6)),
+  age  = c(25, 25, 25, 30, 30, 30, 40, 40, 40, 35, 35, 35)
+)
+spec <- cat_spec(df, id = "id", time = "year", g = "g")
+cat_balance_table(spec, covariates = "age")
 }

@@ -26,3 +26,12 @@ All Units
 |-- Pre (E)
 +-- Post (F)
 }
+\examples{
+df <- data.frame(
+  id   = rep(1:4, each = 2),
+  year = rep(2019:2020, 4),
+  g    = c(rep(2020, 4), rep(Inf, 4))
+)
+spec <- cat_spec(df, id = "id", time = "year", g = "g")
+cat_plot_did(spec)
+}

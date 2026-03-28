@@ -25,7 +25,11 @@ Never-treated units (\code{g = Inf} or \code{g \%in\% never_treated_values}) are
 labeled with the last letter in the sequence.
 }
 \examples{
-# After building a spec, label it:
-# spec <- cat_spec(mydata, id="id", time="year", g="g")
-# spec <- cat_label(spec)
+df <- data.frame(
+  id   = rep(1:4, each = 3),
+  year = rep(2018:2020, 4),
+  g    = c(rep(2019, 6), rep(Inf, 6))
+)
+spec <- cat_spec(df, id = "id", time = "year", g = "g")
+spec <- cat_label(spec)
 }

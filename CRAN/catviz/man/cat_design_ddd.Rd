@@ -32,3 +32,7 @@ All Units
 |-- Q = 1 (penultimate letter)
 +-- Q = 0 (last letter)
 }
+\examples{
+tree <- cat_design_ddd(c("g = 2018", "g = 2019"))
+tree$root
+}

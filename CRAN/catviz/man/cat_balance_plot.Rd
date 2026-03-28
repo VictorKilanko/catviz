@@ -16,3 +16,14 @@ A ggplot object showing standardized mean differences by covariate.
 \description{
 Love plot for balance
 }
+\examples{
+df <- data.frame(
+  id   = rep(1:4, each = 3),
+  year = rep(2018:2020, 4),
+  g    = c(rep(2019, 6), rep(Inf, 6)),
+  age  = c(25, 25, 25, 30, 30, 30, 40, 40, 40, 35, 35, 35)
+)
+spec <- cat_spec(df, id = "id", time = "year", g = "g")
+btbl <- cat_balance_table(spec, covariates = "age")
+cat_balance_plot(btbl)
+}
