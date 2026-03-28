@@ -273,6 +273,9 @@ All methods return a list with a `data` tibble and (for `"csdid"` and `"drddd"`)
 ### Covariate balance
 
 ```r
+# cat_label() is required before using by = "design"
+spec <- cat_label(spec)
+
 # Standardized mean differences by design group (Treated vs. Never-Treated)
 bal <- cat_balance_table(spec, covariates = c("age", "income", "population"),
                          by = "design")
@@ -280,7 +283,7 @@ bal <- cat_balance_table(spec, covariates = c("age", "income", "population"),
 # Love plot
 cat_balance_plot(bal)
 
-# By CAT node (finer decomposition)
+# By CAT node (finer decomposition) — cat_label() not required for by = "node"
 bal_node <- cat_balance_table(spec, covariates = c("age", "income"),
                               by = "node")
 ```
