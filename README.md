@@ -19,7 +19,7 @@ CAT diagrams communicate who serves as the counterfactual, how cohort compositio
 
 Credible causal inference requires knowing which units provide identification and why. The standard practice of reporting a regression table without visualizing treatment structure makes it difficult to evaluate internal validity, detect composition problems, or explain the design to non-technical audiences.
 
-The CAT solves this. It displays the full assignment structure — cohorts, never-treated units, subgroups, pre/post splits, and sample sizes — in a single diagram that maps directly to the econometric identifying assumptions.
+The CAT solves this. It displays the full assignment structure (cohorts, never-treated units, subgroups, pre/post splits, and sample sizes) in a single diagram that maps directly to the econometric identifying assumptions.
 
 **Key benefits:**
 
@@ -272,7 +272,7 @@ cat_diag(spec, method = "event")
 # Plots the gap mean(treated) - mean(never-treated) across pre-treatment
 # event times. A flat gap supports the parallel trends assumption.
 # pre_window is in event time relative to each unit's own treatment year g
-# (e.g. -3:-1 = 3, 2, 1 years before treatment — not calendar years).
+# (e.g. -3:-1 = 3, 2, 1 years before treatment; not calendar years).
 cat_diag(spec, outcome = "my_outcome", method = "csdid", pre_window = -3:-1)
 
 # 3. DR-DDD parallel-trends check
@@ -442,7 +442,7 @@ head(result$data)   # the underlying tibble
 
 ## Tips
 
-1. **Run `cat_plot_tree()` before any estimation.** The diagram will surface structural problems — empty cohorts, small control pools, incorrect `Inf` coding — that would otherwise silently bias your estimates.
+1. **Run `cat_plot_tree()` before any estimation.** The diagram will surface structural problems (empty cohorts, small control pools, incorrect `Inf` coding) that would otherwise silently bias your estimates.
 
 2. **Use `cat_counts()` to audit sample sizes.** Cohorts with very few observations should be collapsed or excluded before computing ATT(g,t) estimates.
 
