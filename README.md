@@ -37,8 +37,11 @@ catviz is currently available from GitHub while awaiting CRAN approval:
 
 ```r
 # Install from GitHub (recommended while CRAN approval is pending)
-# install.packages("remotes")
-remotes::install_github("VictorKilanko/catviz")
+# install.packages("remotes")  # if not already installed
+remotes::install_github("VictorKilanko/catviz", subdir = "CRAN/catviz")
+
+# or with devtools:
+# devtools::install_github("VictorKilanko/catviz", subdir = "CRAN/catviz")
 ```
 
 Once approved, it will also be installable via:
