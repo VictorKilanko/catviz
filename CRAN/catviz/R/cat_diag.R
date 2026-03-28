@@ -126,26 +126,41 @@ cat_pt_csdid <- function(spec, y, pre_window = -8:-1) {
   d <- spec$data
   stopifnot(y %in% names(d))
 
-  dd_long <- d |>
-    dplyr::mutate(
-      e   = .time - .g,
-      grp = dplyr::case_when(
-        .NT == 0 ~ "treated",
-        .NT == 1 ~ "control",
-        TRUE     ~ NA_character_
-      )
-    ) |>
-    dplyr::filter(e %in% pre_window, !is.na(grp)) |>
-    dplyr::group_by(grp, e) |>
-    dplyr::summarise(mean_y = mean(.data[[y]], na.rm = TRUE), .groups = "drop")
+  # Step 1: treated units in pre-window — event time is relative to their own g
+  trt <- d[d$.NT == 0, ]
+  trt$e <- trt$.time - trt$.g
+  trt <- trt[trt$e %in% pre_window, ]
 
-  # Compute gap by joining treated and control means on event time
-  dd_trt <- dd_long[dd_long$grp == "treated", c("e", "mean_y")]
-  dd_ctl <- dd_long[dd_long$grp == "control", c("e", "mean_y")]
-  names(dd_trt)[2] <- "mean_trt"
-  names(dd_ctl)[2] <- "mean_ctl"
-  dd <- dplyr::inner_join(dd_trt, dd_ctl, by = "e") |>
-    dplyr::mutate(gap = mean_trt - mean_ctl)
+  if (nrow(trt) == 0) {
+    warning("No treated observations found in pre_window. Check your pre_window values.")
+    return(list(data = data.frame(e=integer(), mean_trt=numeric(),
+                                  mean_ctl=numeric(), gap=numeric()), plot = NULL))
+  }
+
+  # Step 2: mean treated outcome by event time
+  mean_trt <- aggregate(trt[[y]], by = list(e = trt$e), FUN = mean, na.rm = TRUE)
+  names(mean_trt)[2] <- "mean_trt"
+
+  # Step 3: match never-treated by calendar year (not event time)
+  # Different cohorts at the same event time e are at different calendar years,
+  # so we join never-treated means onto the treated rows by calendar year first,
+  # then average up to event time.
+  nt <- d[d$.NT == 1, ]
+
+  nt_by_year <- aggregate(nt[[y]], by = list(.time = nt$.time),
+                          FUN = mean, na.rm = TRUE)
+  names(nt_by_year)[2] <- "nt_y"
+
+  e_years <- unique(trt[, c("e", ".time")])
+  e_nt    <- merge(e_years, nt_by_year, by = ".time", all.x = TRUE)
+
+  mean_ctl <- aggregate(e_nt$nt_y, by = list(e = e_nt$e), FUN = mean, na.rm = TRUE)
+  names(mean_ctl)[2] <- "mean_ctl"
+
+  # Step 4: join and compute gap
+  dd <- merge(mean_trt, mean_ctl, by = "e")
+  dd$gap <- dd$mean_trt - dd$mean_ctl
+  dd <- dd[order(dd$e), ]
 
   p <- ggplot2::ggplot(dd, ggplot2::aes(e, gap)) +
     ggplot2::geom_line(linewidth = 0.8, color = "#4B6EAF") +
